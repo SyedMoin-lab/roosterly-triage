@@ -1,0 +1,812 @@
+{
+  "title": "Eval: baseline",
+  "run at": "2026-11-16T21:42:44+00:00",
+  "repeats": 3,
+  "models": {
+    "gpt-oss": "openai/gpt-oss-120b",
+    "qwen": "qwen/qwen3.8-27b",
+    "gemini": "gemini-3.5-flash-lite"
+  },
+  "prompt versions": {
+    "triage": "6f561308708a",
+    "audit": "b85f08dc9224",
+    "draft": "ed91b5d2d410",
+    "verify": "c25458510939"
+  },
+  "faq": "a89d6b41c232",
+  "prices as of": "2026-11-16",
+  "summary": {
+    "action": "19/30",
+    "category": "21/30",
+    "priority": "25/30",
+    "language": "30/30",
+    "all_fields_correct": "15/30",
+    "unsafe": 0,
+    "needless_handoffs": 11,
+    "errors": 0,
+    "consistent_examples": "5/10",
+    "good_replies": "7/7",
+    "cost_per_100_tickets_usd": 0.1695,
+    "tokens_per_ticket": 3365
+  },
+  "per_example": {
+    "E01": false,
+    "E02": false,
+    "E03": true,
+    "E04": true,
+    "E05": false,
+    "E06": true,
+    "E07": false,
+    "E08": true,
+    "E09": false,
+    "E10": true
+  },
+  "attempts": [
+    {
+      "example": "E01",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: This is a bug affecting a single user due to unsupported iOS version, requiring technical investigation. No FAQ covers it, so it should be handed off to support..",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Basis]\nWhy a human: This is a bug affecting a single user due to unsupported iOS version, requiring technical investigation. No FAQ covers it, so it should be handed off to support..\nCustomer says (unverified): The customer reports that the app crashes on their iPhone 8 running iOS 15, while other staff do not experience this issue.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000675,
+      "tokens": 1655,
+      "error": null
+    },
+    {
+      "example": "E02",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P3",
+        "reason": "The request is a billing‑related question answered by the help centre (F06). It's not urgent, so P3, and can be answered directly, so action is reply.",
+        "draft_reply": "Hoi,\n\nJe kunt het nieuwe btw-nummer zelf aanpassen voor toekomstige facturen. Ga hiervoor naar Instellingen → Bedrijfsgegevens en vul daar de nieuwe gegevens in. De facturen worden elke maand op de eerste verstuurd en zijn te downloaden onder Instellingen → Abonnement → Facturen.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.003349,
+      "tokens": 5841,
+      "error": null
+    },
+    {
+      "example": "E03",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Refund or disputed charge: the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Basis]\nWhy a human: R1 refund or disputed charge.\nCustomer says (unverified): The customer asks for a refund for the month of August because they were closed for renovation.\nNext step: Check the invoices and payments on the account, then decide on a refund or correction.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R1"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000634,
+      "tokens": 1599,
+      "error": null
+    },
+    {
+      "example": "E04",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "It's a straightforward how‑to question about shift swapping, covered by FAQ F03, so a reply with the relevant instructions is sufficient and the urgency is low.",
+        "draft_reply": "Hoi,\n\nOm een dienst te ruilen, open je de shift in de app en tik je op \"Ruil aanbieden\". Een collega met dezelfde rol kan deze ruil dan accepteren. Vervolgens keurt de manager de ruil goed onder Rooster → Verzoeken. Let op: managerkeuring staat standaard aan. Je kunt dit uitschakelen via Instellingen → Rooster.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.003662,
+      "tokens": 5932,
+      "error": null
+    },
+    {
+      "example": "E05",
+      "label": {
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "reason": "Handed to a human: The request is a feature request not covered by the help centre, so it must be handed off to the product team. It is low urgency (P4) and the language is Dutch..",
+        "draft_reply": null,
+        "handoff_note": "[P4 · feature_request · nl · Plus]\nWhy a human: The request is a feature request not covered by the help centre, so it must be handed off to the product team. It is low urgency (P4) and the language is Dutch..\nCustomer says (unverified): The customer wants a Google Calendar integration for shift scheduling.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000629,
+      "tokens": 1578,
+      "error": null
+    },
+    {
+      "example": "E06",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: The issue is a functional bug affecting a single customer, requiring technical investigation. No help‑centre article answers it, so it must be handed off to support..",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Plus]\nWhy a human: The issue is a functional bug affecting a single customer, requiring technical investigation. No help‑centre article answers it, so it must be handed off to support..\nCustomer says (unverified): The user cannot publish the rota and receives an error message, causing the next week's schedule to be invisible to staff.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000648,
+      "tokens": 1624,
+      "error": null
+    },
+    {
+      "example": "E07",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · question · nl · Basis]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer asks for the price of the Plus plan for 25 employees.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 0.33
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.002356,
+      "tokens": 4664,
+      "error": null
+    },
+    {
+      "example": "E08",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "action": "close"
+      },
+      "decision": {
+        "action": "close",
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "reason": "Closed: spam.",
+        "draft_reply": null,
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [
+        "SPAM"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001945,
+      "tokens": 4373,
+      "error": null
+    },
+    {
+      "example": "E09",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P2",
+        "reason": "Personal data request (GDPR, AVG in Dutch): the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · question · nl · Plus]\nWhy a human: R3 personal data request (GDPR, AVG in Dutch).\nCustomer says (unverified): The customer requests a GDPR data access request for all personal data stored about them.\nNext step: Handle it as a GDPR (AVG) request: verify the requester and answer within the legal deadline.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R3"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.00066,
+      "tokens": 1631,
+      "error": null
+    },
+    {
+      "example": "E10",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "The ticket is a straightforward question about planned maintenance, covered by FAQ F11, low urgency, so it can be answered automatically.",
+        "draft_reply": "Hoi,\n\nVoor actuele storingen en gepland onderhoud kun je altijd kijken op status.roosterly.nl. Daar zie je direct of er vanavond onderhoud is ingepland.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.002966,
+      "tokens": 5396,
+      "error": null
+    },
+    {
+      "example": "E01",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: The problem is a technical bug affecting a single user, requiring developer support. It is not covered by any help‑centre entry, so it must be handed off. The issue blocks the user, so it is a P2 priority..",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Basis]\nWhy a human: The problem is a technical bug affecting a single user, requiring developer support. It is not covered by any help‑centre entry, so it must be handed off. The issue blocks the user, so it is a P2 priority..\nCustomer says (unverified): The customer reports that the app crashes immediately on their iPhone 8 running iOS 15, while other staff members do not experience this issue.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000683,
+      "tokens": 1662,
+      "error": null
+    },
+    {
+      "example": "E02",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P3",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P3 · question · nl · Plus]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer wants to update their VAT number on upcoming invoices.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 0.67
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.00243,
+      "tokens": 4757,
+      "error": null
+    },
+    {
+      "example": "E03",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Refund or disputed charge: the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Basis]\nWhy a human: R1 refund or disputed charge.\nCustomer says (unverified): The customer asks for a refund for a month when they were closed due to renovations.\nNext step: Check the invoices and payments on the account, then decide on a refund or correction.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R1"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000596,
+      "tokens": 1549,
+      "error": null
+    },
+    {
+      "example": "E04",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "The request is a straightforward how‑to question covered by FAQ F03, no client rule applies, and it is low urgency.",
+        "draft_reply": "Hoi,\n\nOm een dienst te ruilen, open je de dienst in de app en tik je op \"Ruil aanbieden\". Een collega met dezelfde rol kan deze ruil accepteren. Vervolgens keurt de manager de ruil goed onder Rooster → Verzoeken. Let op: manager goedkeuring staat standaard aan. Je kunt dit uitschakelen onder Instellingen → Rooster.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.00363,
+      "tokens": 5879,
+      "error": null
+    },
+    {
+      "example": "E05",
+      "label": {
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "reason": "Handed to a human: The request is a new feature not covered by the help centre, so it is a feature request with low urgency and must be handed off to the product team..",
+        "draft_reply": null,
+        "handoff_note": "[P4 · feature_request · nl · Plus]\nWhy a human: The request is a new feature not covered by the help centre, so it is a feature request with low urgency and must be handed off to the product team..\nCustomer says (unverified): The customer wants a Google Calendar integration for shift scheduling.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000633,
+      "tokens": 1583,
+      "error": null
+    },
+    {
+      "example": "E06",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: The issue is a functional bug affecting a single customer, so it is a P2 priority. No help‑centre article covers this problem, and it does not fall under any client‑rule category, so it requires human handling..",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Plus]\nWhy a human: The issue is a functional bug affecting a single customer, so it is a P2 priority. No help‑centre article covers this problem, and it does not fall under any client‑rule category, so it requires human handling..\nCustomer says (unverified): The user cannot publish the next week's rota and receives an error message.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000651,
+      "tokens": 1627,
+      "error": null
+    },
+    {
+      "example": "E07",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "Handed to a human: the safety audit matched client rule R2.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · question · nl · Basis]\nWhy a human: the safety audit matched client rule R2.\nCustomer says (unverified): The customer asks for the price of the Plus plan for 25 employees.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "AUDIT"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.002388,
+      "tokens": 4771,
+      "error": null
+    },
+    {
+      "example": "E08",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "action": "close"
+      },
+      "decision": {
+        "action": "close",
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "reason": "Closed: spam.",
+        "draft_reply": null,
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [
+        "SPAM"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001976,
+      "tokens": 4458,
+      "error": null
+    },
+    {
+      "example": "E09",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P2",
+        "reason": "Personal data request (GDPR, AVG in Dutch): the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · question · nl · Plus]\nWhy a human: R3 personal data request (GDPR, AVG in Dutch).\nCustomer says (unverified): The customer requests a GDPR data access request for all personal data stored about them.\nNext step: Handle it as a GDPR (AVG) request: verify the requester and answer within the legal deadline.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R3"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000658,
+      "tokens": 1630,
+      "error": null
+    },
+    {
+      "example": "E10",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "The request is a straightforward question about scheduled maintenance, covered by F11, low urgency, so a reply with the relevant info is appropriate.",
+        "draft_reply": "Hoi,\n\nVoor actuele informatie over gepland onderhoud en storingen kun je het beste kijken op status.roosterly.nl. Daar zie je direct of er vanavond onderhoud is ingepland.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.003011,
+      "tokens": 5452,
+      "error": null
+    },
+    {
+      "example": "E01",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: The problem is a technical bug affecting a single user, requiring developer investigation. It is not covered by any help‑centre article, so it must be handed off to support. Priority is P2 because one customer is blocked..",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Basis]\nWhy a human: The problem is a technical bug affecting a single user, requiring developer investigation. It is not covered by any help‑centre article, so it must be handed off to support. Priority is P2 because one customer is blocked..\nCustomer says (unverified): The user reports that the app crashes immediately on their iPhone 8 running iOS 15, while other staff members do not experience this issue.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000685,
+      "tokens": 1664,
+      "error": null
+    },
+    {
+      "example": "E02",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · question · nl · Plus]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer wants their new VAT number added to future invoices.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 0.67
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.002465,
+      "tokens": 4761,
+      "error": null
+    },
+    {
+      "example": "E03",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Refund or disputed charge: the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Basis]\nWhy a human: R1 refund or disputed charge.\nCustomer says (unverified): The customer asks for a refund for the month they were closed because of renovation.\nNext step: Check the invoices and payments on the account, then decide on a refund or correction.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R1"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000619,
+      "tokens": 1578,
+      "error": null
+    },
+    {
+      "example": "E04",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "The request is a straightforward how‑to question covered by FAQ F03, it is low urgency and does not involve billing or security, so we can reply with the relevant instructions.",
+        "draft_reply": "Hoi,\n\nOm een dienst te ruilen, open je de dienst in de app en tik je op \"Ruil aanbieden\". Een collega met dezelfde rol kan deze ruil accepteren. Vervolgens keurt de manager de ruil goed onder Rooster → Verzoeken. Let op: manager goedkeuring staat standaard aan. Je kunt dit uitschakelen onder Instellingen → Rooster.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.003601,
+      "tokens": 5912,
+      "error": null
+    },
+    {
+      "example": "E05",
+      "label": {
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "reason": "Handed to a human: The request is a feature suggestion not covered by existing help centre entries, so it is a feature request with low urgency..",
+        "draft_reply": null,
+        "handoff_note": "[P4 · feature_request · nl · Plus]\nWhy a human: The request is a feature suggestion not covered by existing help centre entries, so it is a feature request with low urgency..\nCustomer says (unverified): The customer requests a Google Calendar integration for shift scheduling.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.00062,
+      "tokens": 1565,
+      "error": null
+    },
+    {
+      "example": "E06",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: The issue is a functional error with publishing the rota, which is a bug affecting a single customer, so it is P2. No help‑centre article covers this, so it must be handed off to support..",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Plus]\nWhy a human: The issue is a functional error with publishing the rota, which is a bug affecting a single customer, so it is P2. No help‑centre article covers this, so it must be handed off to support..\nCustomer says (unverified): The user cannot publish the next week's rota and receives an error message.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000648,
+      "tokens": 1619,
+      "error": null
+    },
+    {
+      "example": "E07",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · question · nl · Basis]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer asks for the cost of the Plus plan for 25 employees.\nNext step: Read the ticket and reply; the help centre does not cover it.",
+        "confidence": 0.67
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.002417,
+      "tokens": 4639,
+      "error": null
+    },
+    {
+      "example": "E08",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "action": "close"
+      },
+      "decision": {
+        "action": "close",
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "reason": "Closed: spam.",
+        "draft_reply": null,
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [
+        "SPAM"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.00199,
+      "tokens": 4501,
+      "error": null
+    },
+    {
+      "example": "E09",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P2",
+        "reason": "Personal data request (GDPR, AVG in Dutch): the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · question · nl · Plus]\nWhy a human: R3 personal data request (GDPR, AVG in Dutch).\nCustomer says (unverified): The customer requests a GDPR data access request for all personal data stored about them.\nNext step: Handle it as a GDPR (AVG) request: verify the requester and answer within the legal deadline.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R3"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000629,
+      "tokens": 1591,
+      "error": null
+    },
+    {
+      "example": "E10",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "The ticket is a straightforward question about planned maintenance, covered by F11. It's low urgency (P4) and can be answered directly, so a reply is appropriate.",
+        "draft_reply": "Hoi,\n\nVoor actuele informatie over gepland onderhoud en storingen kun je het beste kijken op status.roosterly.nl. Daar zie je direct of er vanavond onderhoud is ingepland.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.003009,
+      "tokens": 5449,
+      "error": null
+    }
+  ]
+}
