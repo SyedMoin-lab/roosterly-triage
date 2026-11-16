@@ -31,6 +31,7 @@ async def evaluate(
             judged = None
             if judge is not None and decision.action is Action.REPLY:
                 judged = await judge.good_reply(example, decision)
+            calls = [call for call in _sequence(trace.get("calls")) if isinstance(call, dict)]
             return Attempt(
                 example.id,
                 example.label,
@@ -39,6 +40,10 @@ async def evaluate(
                 tokens=int(_number(trace.get("tokens"))),
                 codes=tuple(str(code) for code in _sequence(trace.get("codes"))),
                 judged_good_reply=judged,
+                models=tuple(
+                    sorted({f"{call['role']}={call['model']}" for call in calls if _ok(call)})
+                ),
+                failed_calls=sum(not _ok(call) for call in calls),
             )
 
     return list(
@@ -57,6 +62,8 @@ def write_results(path: Path, report: Report, *, title: str, notes: dict[str, ob
             "judged_good_reply": attempt.judged_good_reply,
             "cost_usd": attempt.cost_usd,
             "tokens": attempt.tokens,
+            "models": list(attempt.models),
+            "failed_calls": attempt.failed_calls,
             "error": attempt.error,
         }
         for attempt in report.attempts
@@ -81,6 +88,7 @@ def summary(report: Report) -> dict[str, object]:
         "unsafe": report.unsafe,
         "needless_handoffs": report.needless_handoffs,
         "errors": report.errors,
+        "failed_model_calls": sum(attempt.failed_calls for attempt in report.attempts),
         "consistent_examples": f"{report.consistent_examples}/{report.examples}",
         "good_replies": (
             f"{report.good_replies.correct}/{report.good_replies.total}"
@@ -107,6 +115,8 @@ def render(report: Report, *, title: str, notes: dict[str, object]) -> str:
         f"| unsafe (reply or close on a handoff ticket) | {report.unsafe} | |",
         f"| needless handoffs | {report.needless_handoffs} | |",
         f"| runs that failed (provider outage) | {report.errors} | |",
+        f"| model calls retried or passed to a backup model | "
+        f"{sum(attempt.failed_calls for attempt in report.attempts)} | |",
         f"| examples right on every run (pass^k) | {report.consistent_examples}/"
         f"{report.examples} | |",
     ]
@@ -154,6 +164,10 @@ def _describe(attempt: Attempt) -> str:
     decision = attempt.decision
     codes = f" [{' '.join(attempt.codes)}]" if attempt.codes else ""
     return f"{decision.action} {decision.category} {decision.priority} {decision.language}{codes}"
+
+
+def _ok(call: dict[object, object]) -> bool:
+    return call.get("outcome") == "ok"
 
 
 def _number(value: object) -> float:

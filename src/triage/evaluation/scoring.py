@@ -19,6 +19,8 @@ class Attempt:
     codes: tuple[str, ...] = ()
     judged_good_reply: bool | None = None
     error: str | None = None
+    models: tuple[str, ...] = ()
+    failed_calls: int = 0
 
     def matches(self, name: str) -> bool:
         return self.decision is not None and getattr(self.decision, name) == getattr(
