@@ -29,9 +29,9 @@ Every rule from Nordavo's brief, the API reference, the candidate FAQ and the cl
 | B3 | 409: never retry, a customer never gets two answers | `AlreadyHandledError`; the journal records the ticket as already handled | `test_a_409_is_reported_and_never_retried`, `test_a_ticket_answered_meanwhile_gets_no_second_answer` | 1–2 ✅ |
 | B4 | A write whose response is lost | `WriteOutcomeUnknownError`; settled by a GET, never resent blindly | `test_a_lost_response_is_settled_by_reading_not_by_resending` | 1–2 ✅ |
 | B5 | Safe to re-run: after a crash it continues where it stopped | Journal states with compare-and-swap; the decision body is frozen before posting | `test_a_crash_at_any_point_never_loses_or_repeats_an_answer` (24 cases) | 2 ✅ |
-| B6 | One log line per ticket in `logs/`, without payment details | One JSON line per ticket per run, refused if repeated; no ticket text; redaction of free-text fields | `test_runlog.py`; store scan after every run | 2 ✅ lines, 3 redaction |
+| B6 | One log line per ticket in `logs/`, without payment details | One JSON line per ticket per run, refused if repeated; no ticket text; every text field redacted before writing | `test_payment_details_never_reach_the_log`, `test_runlog.py` | 2–3 ✅ |
 | B7 | Keys come from environment variables | pydantic-settings with `SecretStr`; `.env` git-ignored; `.env.example` committed | `test_settings_load_from_environment_variables`, `test_the_key_never_appears_in_repr_or_str` | 1 ✅ |
-| B8 | Ticket text is data, not instructions | Ticket IDs come only from the code's loop and are checked before use in a URL; spotlighting, injection screen, escalate-only rules | `test_unsafe_ticket_ids_never_reach_the_network`; red-team scenarios | 1 ✅ IDs, 3–4 |
+| B8 | Ticket text is data, not instructions | Ticket IDs come only from the code's loop and are checked before use in a URL; spotlighting, injection screen, escalate-only rules | `test_unsafe_ticket_ids_never_reach_the_network`; `test_prompt_injections_are_flagged`; red-team scenarios | 1 ✅ IDs, 3 ✅ cleaning and injection screen, 4 spotlighting |
 | B9 | 400, 401, 404 and 422 handled | Typed errors that are never retried | `test_a_wrong_key_stops_at_the_first_401` and siblings | 1 ✅ |
 
 ## 3. Working in Dutch (brief §03, candidate FAQ)
@@ -39,17 +39,17 @@ Every rule from Nordavo's brief, the API reference, the candidate FAQ and the cl
 | ID | Requirement | Design | Phase |
 |---|---|---|---|
 | C1 | Replies in the customer's language | Draft in the ticket's language; detectors confirm it | 4 |
-| C2 | Handoff notes in English | Template-built note | 3 |
+| C2 | Handoff notes in English | Template-built note: header, rule codes, English summary, next step | 3 ✅ |
 | C3 | Explain the language choice and its cost under Decisions | Read in Dutch, reason in English, draft in the customer's language | 7 |
-| C4 | Check a Dutch reply without reading Dutch | Nine deterministic checks against `faq.md`, plus an English back-translation by a model from another family | 3–4 |
+| C4 | Check a Dutch reply without reading Dutch | Nine deterministic checks against `faq.md` (13 mutations of a clean reply, all caught), plus an English back-translation by a model from another family | 3 ✅ checks, 4 back-translation |
 
 ## 4. The client's rules (`faq.md`)
 
 | ID | Rule | Design | Phase |
 |---|---|---|---|
 | D1 | Only answer from the help centre; otherwise a human | Per-question coverage map; reply only if every question maps to an FAQ entry | 4 |
-| D2 | Always a human, even if the FAQ seems to cover it: refunds or disputed charges, cancellations and contract changes, GDPR (AVG) requests, possible security incidents, legal threats, customers threatening to leave | Escalate-only keyword rules R1–R6 (Dutch, German, English), then model and safeguard checks | 3 |
-| D3 | Never repeat payment details in a reply or a log | Redaction before any model, store or log; check G7 on every draft | 3 |
+| D2 | Always a human, even if the FAQ seems to cover it: refunds or disputed charges, cancellations and contract changes, GDPR (AVG) requests, possible security incidents, legal threats, customers threatening to leave | Escalate-only keyword rules R1–R6 in Dutch, German and English (34 positive and 19 trap cases), then model and safeguard checks | 3 ✅ keyword layer, 4 model layer |
+| D3 | Never repeat payment details in a reply or a log | IBAN (any bank, by checksum), Luhn-valid cards and BSNs redacted before any model, store or log; check G7 on every draft | 3 ✅ |
 | D4 | Reply in the customer's language | As C1 | 4 |
 | D5 | Notes for the support team in English | As C2 | 3 |
 
