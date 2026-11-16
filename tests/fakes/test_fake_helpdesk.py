@@ -47,6 +47,14 @@ def test_the_fake_validates_decision_bodies() -> None:
     assert "handoff_note is required for a handoff" in response.json()["problems"]
 
 
+def test_a_handled_ticket_has_the_shape_the_real_helpdesk_returns() -> None:
+    _, http = fake_and_http()
+    http.post("/tickets/T001/reply", json=REPLY_BODY, headers=HEADERS)
+    handled = http.get("/tickets/T001", headers=HEADERS).json()["handled"]
+    assert set(handled) == {"at", "action"}
+    assert handled["action"] == "reply"
+
+
 def test_the_fake_reset_reopens_every_ticket() -> None:
     fake, http = fake_and_http()
     http.post("/tickets/T001/reply", json=REPLY_BODY, headers=HEADERS)

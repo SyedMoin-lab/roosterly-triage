@@ -242,7 +242,10 @@ class FakeHelpdesk:
     def _view(self, ticket_id: str, *, with_handled: bool) -> dict[str, Any]:
         view = dict(self.tickets[ticket_id])
         if with_handled:
-            view["handled"] = self.handled.get(ticket_id)
+            entry = self.handled.get(ticket_id)
+            view["handled"] = (
+                None if entry is None else {"at": entry.get("at"), "action": entry.get("action")}
+            )
         return view
 
     def _decide(self, ticket_id: str, action: str, content: bytes) -> httpx.Response:
@@ -258,7 +261,8 @@ class FakeHelpdesk:
         if ticket_id in self.handled:
             self.conflicts[ticket_id] += 1
             return _error(409, "already_handled", "This ticket was already handled.")
-        self.handled[ticket_id] = {"action": action, **body}
+        handled_at = datetime.fromtimestamp(self._clock(), UTC).isoformat()
+        self.handled[ticket_id] = {"action": action, "at": handled_at, **body}
         self.accepted_writes[ticket_id] += 1
         return httpx.Response(200, json={"ok": True, "id": ticket_id, "action": action})
 

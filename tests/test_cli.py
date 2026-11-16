@@ -41,6 +41,18 @@ def test_run_without_configuration_exits_with_code_2() -> None:
     assert main(["run", "--decider", "drill"]) == 2
 
 
+@pytest.mark.usefixtures("no_configuration")
+def test_an_unreachable_database_stops_the_run_before_the_helpdesk_is_touched(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("HELPDESK_BASE_URL", "https://helpdesk.invalid/functions/v1/helpdesk")
+    monkeypatch.setenv("HELPDESK_API_KEY", "test-key")
+    monkeypatch.setenv("CANDIDATE_EMAIL", "candidate@example.com")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://triage:triage@127.0.0.1:1/triage")
+    assert main(["run", "--decider", "drill"]) == 1
+    assert "Database error" in capsys.readouterr().err
+
+
 def test_run_requires_an_explicit_decider() -> None:
     with pytest.raises(SystemExit) as exit_info:
         main(["run"])

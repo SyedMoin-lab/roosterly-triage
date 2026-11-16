@@ -54,29 +54,33 @@ against the real helpdesk on its own schedule. No browser tests: the brief needs
 
 ## 2. Crash safety and the journal (Phase 2)
 
-| ID | Scenario | Expected |
-|---|---|---|
-| R-01 | Crash at each of 5 points × 30 tickets (150 runs) | Re-run finishes; I-1 and I-2 hold |
-| R-02 | Crash during a model call | The frozen decision is reused; no second model call for a decided ticket |
-| R-03 | Crash after the POST, before `done` | Startup GET finds it handled; no second POST |
-| R-04 | Hard kill of the process against real Postgres | Same as R-01 |
-| R-05 | Running twice in a row | Second run makes zero POSTs |
-| R-06 | Ticket in `posting` and the reconciling GET fails | No POST until a GET succeeds |
-| R-07 | Practice reset done outside the agent | Detected; a new epoch processes each ticket once |
-| R-08 | 409 on a write the journal thought was new | GET confirms; marked done; counted as "handled elsewhere" |
+| ID | Scenario | Expected | Status |
+|---|---|---|---|
+| R-01 | Crash at 4 points (after claim, after decision, after the posting claim, after the POST) × 3 ticket positions × 1 and 4 workers | Re-run finishes; every ticket answered exactly once; zero 409s | ✅ 24 runs |
+| R-02 | Crash after the decision is frozen | The frozen decision is reused; the decider is not called again | ✅ |
+| R-03 | Crash after the POST, before `done` | Startup GET finds it handled; no second POST | ✅ |
+| R-04 | Hard kill of the OS process against real Postgres | Same as R-01 | Phase 7 drill |
+| R-05 | Running twice in a row | Second run makes zero POSTs | ✅, also on the real helpdesk |
+| R-06 | Ticket in `posting` and the reconciling GET fails | No POST until a GET succeeds | ✅ |
+| R-07 | Practice reset done outside the agent | Detected; a new epoch answers each ticket once | ✅ |
+| R-08 | 409 on a ticket answered meanwhile | Recorded as already handled; no second answer | ✅ |
+| R-09 | Ticket answered elsewhere before its turn | Closed out as handled elsewhere | ✅ |
+| R-10 | Key refused mid-run | Run stops; the frozen decision is posted next run without a new model call | ✅ |
+| R-11 | Decider bug on one ticket; outage of every model | Other tickets continue; an outage leaves tickets open and exits with code 3 | ✅ |
+| R-12 | Helpdesk rejects a decision (422) | Ticket marked failed and decided again on the next run | ✅ |
 
 ## 3. Database and concurrency (Phase 2)
 
-| ID | Scenario | Expected |
-|---|---|---|
-| DB-01 | Migrations on an empty database | Applied in order with checksums; a changed applied file stops startup |
-| DB-02 | Every state change | Compare-and-swap; a stale update changes 0 rows |
-| DB-03 | 2, 4 and 8 workers claiming 30 tickets, 20 seeds | Every ticket claimed exactly once |
-| DB-04 | A second runner starts | Refused by the advisory lock |
-| DB-05 | Postgres unreachable at startup | Exits before any POST |
-| DB-06 | Connection killed mid-transaction | No half-written state; the re-run finishes |
-| DB-07 | Two runners with separate databases (negative control) | 409s appear, proving the one-journal rule |
-| DB-08 | Ticket text at rest | Stored redacted, plus a hash of the raw text |
+| ID | Scenario | Expected | Status |
+|---|---|---|---|
+| DB-01 | Migrations on an empty database | Applied in order with checksums; a changed applied file stops startup | ✅ |
+| DB-02 | Every state change | Compare-and-swap; a stale update changes 0 rows | ✅ |
+| DB-03 | Eight concurrent claims of one ticket | Exactly one wins | ✅ |
+| DB-04 | A second runner starts | Refused by the advisory lock (exit 5) | ✅ |
+| DB-05 | Postgres unreachable at startup | Stops before the helpdesk is touched | ✅ |
+| DB-06 | Workers cancelled mid-transaction by a crash | No half-written state; the re-run finishes | ✅ in R-01 with 4 workers |
+| DB-07 | Two runners with separate databases (negative control) | 409s appear, proving the one-journal rule | Planned |
+| DB-08 | Ticket text at rest | Never stored: the journal keeps IDs, states and the frozen decision | ✅ |
 
 ## 4. Data handling and privacy (Phase 3)
 
@@ -197,10 +201,11 @@ meaning-level mutations is reported separately.
 |---|---|---|---|
 | OP-01 | `status` without configuration | Exit 2, names the missing variables | ✅ |
 | OP-02 | `status` against the helpdesk | One read-only line | ✅ |
-| OP-03 | `run --dry-run` | Decides, posts nothing | Phase 2 |
-| OP-04 | `run --limit N` | Handles at most N tickets | Phase 2 |
-| OP-05 | Final-run lock set | Every live run refused, exit 4 | Phase 2 |
-| OP-06 | Ctrl+C during posting | In-flight posts settle; exit 130; re-run reconciles | Phase 2 |
+| OP-03 | `run --dry-run` | Decides, posts nothing, journal untouched | ✅ |
+| OP-04 | `run --limit N` | Handles at most N tickets | ✅, also a 3-ticket canary on the real helpdesk |
+| OP-05 | Final-run lock set | Every live run and reset refused, exit 4; dry runs still work | ✅ |
+| OP-06 | Ctrl+C during posting | Exit 130; in-flight posts stay in `posting` and are settled by GET next run | ✅ reconcile tested |
+| OP-07 | `reset` without `--yes` | Refused with exit 2 | ✅ |
 
 ## 12. Contract tests against the real helpdesk
 
@@ -208,7 +213,7 @@ meaning-level mutations is reported separately.
 |---|---|---|
 | CT-01 | Read-only shapes of `/status`, `/tickets`, `/tickets/{id}`, `/examples` and a 404 | ✅ 17 November |
 | CT-02 | The fake helpdesk matches those shapes | ✅ |
-| CT-03 | One practice write and the shape of `handled` | Phase 2, practice mode only |
+| CT-03 | Practice writes and the shape of `handled` | ✅ 17 November: 30 drill decisions posted, then reset; `handled` is `{at, action}` and the fake matches |
 | CT-04 | Each model returns at least 9 of 10 valid structured outputs | Phase 4 |
 
 Writes to the real helpdesk happen only in practice mode and never after the final run.

@@ -45,6 +45,13 @@ def main(argv: list[str] | None = None) -> int:
     except HelpdeskError as error:
         print(f"Helpdesk error: {error}", file=sys.stderr)
         return ExitCode.INCOMPLETE
+    except (OSError, asyncpg.PostgresError) as error:
+        print(
+            f"Database error ({type(error).__name__}). Is it running? "
+            "Start it with `docker compose up -d --wait db`.",
+            file=sys.stderr,
+        )
+        return ExitCode.INCOMPLETE
     except KeyboardInterrupt:
         print("Interrupted. The next run settles anything that was in flight.", file=sys.stderr)
         return ExitCode.INTERRUPTED
