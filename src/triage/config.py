@@ -33,3 +33,16 @@ class HelpdeskSettings(BaseSettings):
         if not (local and at and "." in domain) or any(char.isspace() for char in value):
             raise ValueError("must be the email address you applied with")
         return value
+
+
+class DatabaseSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    database_url: SecretStr
+
+    @field_validator("database_url")
+    @classmethod
+    def _postgres_url(cls, value: SecretStr) -> SecretStr:
+        if not value.get_secret_value().startswith(("postgresql://", "postgres://")):
+            raise ValueError("must be a postgresql:// URL")
+        return value

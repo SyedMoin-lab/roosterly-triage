@@ -8,8 +8,14 @@ from pydantic import SecretStr
 
 from tests.fakes.clock import FakeClock
 from tests.fakes.decisions import CLOSE, HANDOFF, REPLY
-from tests.fakes.helpdesk import API_KEY, CANDIDATE_EMAIL, FakeHelpdesk, Fault, make_ticket
-from tests.helpdesk.conftest import Connect
+from tests.fakes.helpdesk import (
+    API_KEY,
+    CANDIDATE_EMAIL,
+    Connect,
+    FakeHelpdesk,
+    Fault,
+    make_ticket,
+)
 from triage.config import HelpdeskSettings
 from triage.helpdesk.client import HelpdeskClient, build_http_client
 from triage.helpdesk.errors import (

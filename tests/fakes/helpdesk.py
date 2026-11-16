@@ -8,6 +8,10 @@ from typing import Any, Literal
 
 import httpx
 
+from triage.helpdesk.client import HelpdeskClient
+
+type Connect = Callable[..., HelpdeskClient]
+
 API_KEY = "test-api-key"
 CANDIDATE_EMAIL = "candidate@example.com"
 BASE_URL = "https://helpdesk.test/functions/v1/helpdesk"
