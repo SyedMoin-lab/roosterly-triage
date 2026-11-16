@@ -41,5 +41,5 @@ jobs:
           poetry check --lock
           poetry sync --no-interaction
 
-      - name: Run the tests
-        run: poetry run python -m pytest
+      - name: Format, lint, type-check and test
+        run: poetry run python scripts/check.py
