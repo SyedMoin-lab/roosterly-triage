@@ -221,11 +221,15 @@ async def eval_command(args: argparse.Namespace) -> int:
         "faq": faq.sha256[:12],
         "prices as of": PRICES_AS_OF,
     }
+    comparison = None
+    if args.compare_with is not None:
+        comparison = compare_with(args.compare_with, report)
+        notes[f"compared with {args.compare_with.stem}"] = comparison
     path = Path("eval/results") / args.name
     write_results(path, report, title=f"Eval: {args.name}", notes=notes)
     print(json.dumps(summary(report), indent=2))
-    if args.compare_with is not None:
-        print(compare_with(args.compare_with, report))
+    if comparison is not None:
+        print(comparison)
     print(f"results: {path.with_suffix('.md')}")
     return ExitCode.OK
 

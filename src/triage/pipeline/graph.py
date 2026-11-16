@@ -243,7 +243,8 @@ class Pipeline:
         return {"verification": answer.value, "calls": calls}
 
     async def _finalize(self, state: State) -> dict[str, Any]:
-        return {"decision": build_decision(state)}
+        route = settle_route(state)
+        return {"route": route, "decision": build_decision(state, route)}
 
 
 class PipelineDecider:
@@ -262,23 +263,28 @@ def _with_backup(voter: ModelSpec, voters: tuple[ModelSpec, ...]) -> tuple[Model
     return (voter, *(spec for spec in voters if spec is not voter))
 
 
-def build_decision(state: State) -> Decision:
-    route, prepared = state["route"], state["prepared"]
-    triage = state.get("triage")
-    if route.action is Action.REPLY:
-        problem = _reply_problem(state)
-        draft = state.get("draft")
-        if problem is None and draft is not None:
-            return Decision(
-                action=Action.REPLY,
-                language=route.language,
-                category=route.category,
-                priority=route.priority,
-                reason=_clip(triage.reason if triage else "Answered from the help centre."),
-                draft_reply=draft.reply,
-                confidence=route.agreement,
-            )
-        route = route.escalated(*(problem or ("the reply could not be checked", "UNCHECKED")))
+def settle_route(state: State) -> Route:
+    route = state["route"]
+    if route.action is not Action.REPLY:
+        return route
+    problem = _reply_problem(state)
+    if problem is None and state.get("draft") is not None:
+        return route
+    return route.escalated(*(problem or ("the reply could not be checked", "UNCHECKED")))
+
+
+def build_decision(state: State, route: Route) -> Decision:
+    prepared, triage = state["prepared"], state.get("triage")
+    if route.action is Action.REPLY and (draft := state.get("draft")) is not None:
+        return Decision(
+            action=Action.REPLY,
+            language=route.language,
+            category=route.category,
+            priority=route.priority,
+            reason=_clip(triage.reason if triage else "Answered from the help centre."),
+            draft_reply=draft.reply,
+            confidence=route.agreement,
+        )
     if route.action is Action.CLOSE:
         return Decision(
             action=Action.CLOSE,

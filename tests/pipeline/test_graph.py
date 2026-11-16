@@ -108,6 +108,7 @@ async def test_a_draft_that_fails_the_checks_twice_is_handed_off(
     models.respond(DraftReply, lambda spec: BAD_DRAFT)
     state = await pipeline.run(ticket(QUESTION))
     assert state["decision"].action is Action.HANDOFF
+    assert state["route"].codes[-1] == "CHECKS"
     assert state["decision"].handoff_note is not None
     assert "the draft failed checks G3" in state["decision"].handoff_note
     assert models.called()["DraftReply"] == 2
@@ -128,8 +129,10 @@ async def test_a_reply_the_verifier_rejects_is_handed_off(
     pipeline: Pipeline, models: ScriptedModels
 ) -> None:
     models.respond(Verification, lambda spec: FAIL)
-    decision = (await pipeline.run(ticket(QUESTION)))["decision"]
+    state = await pipeline.run(ticket(QUESTION))
+    decision = state["decision"]
     assert decision.action is Action.HANDOFF
+    assert state["route"].codes[-1] == "VERIFY"
     assert decision.handoff_note is not None
     assert "verifier" in decision.handoff_note
 
