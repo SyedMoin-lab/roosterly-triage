@@ -1,54 +1,75 @@
 # Roosterly triage agent
 
-Reads Roosterly's open support tickets from the Nordavo helpdesk API and posts exactly one decision per
-ticket: reply (answered only from the FAQ), hand off to a human, or close.
-
-> Work in progress. This file follows the five sections the brief asks for and grows with the code.
+Posts one decision per open helpdesk ticket: an FAQ reply in the customer's language, a handoff with an
+English note, or a close. [docs/requirements.md](docs/requirements.md) traces every rule in the brief to
+code and tests.
 
 ## How to run
 
-Needs Python 3.12 and [Poetry](https://python-poetry.org/) 2.x.
-
 ```bash
-docker compose up -d --wait db        # Postgres 18 with pgvector on 127.0.0.1:5434
-poetry install                        # installs the exact versions pinned in poetry.lock
-cp .env.example .env                  # then fill in the keys
-poetry run python -m triage status    # read-only: helpdesk counts and journal state
-poetry run python -m triage run --decider drill --dry-run   # decide without posting
-poetry run python scripts/check.py    # format, lint, types and tests, as in CI
+docker compose up -d --wait db                       # Postgres 18 + pgvector
+poetry install && cp .env.example .env               # then fill in the keys
+poetry run python -m triage run --dry-run --limit 3  # decide three tickets, post nothing
+poetry run python -m triage eval                     # the 10 labelled examples, 3 runs each
+poetry run python scripts/check.py                   # ruff, mypy --strict, 331 tests, as in CI
 ```
 
-`run` also takes `--limit N` and `--concurrency N`. `reset --yes` re-opens the practice tickets, and
-`lock` refuses every live run and reset once the final run is done.
-
-On Windows with Smart App Control on, create the environment first (`python -m venv .venv`) and run Poetry
-as `python -m poetry`: Smart App Control blocks the `poetry.exe` launcher and the environments Poetry
-creates by itself. Hypothesis is pinned to 6.155.7, the last release without a native extension, for
-the same reason.
-
-Every rule from the brief is traced to its code and test in [docs/requirements.md](docs/requirements.md);
-the QA scenarios are in [docs/test-plan.md](docs/test-plan.md).
+Final run: `triage reset --yes`, `triage run`, then `triage lock` to refuse later runs. Exit code 1 or 3:
+run again to finish. With Windows Smart App Control: `python -m venv .venv`, then `python -m poetry`.
 
 ## Decisions
 
-_Written down as the decisions are made._
+- **Models propose, code decides.** Eight LangGraph steps; rules, redaction, routing and notes are code,
+  and every signal can only escalate. A reply needs each question mapped to an FAQ entry, two agreeing
+  votes from other model families, a clean safety audit and no P1.
+- **Free models, three families:** gpt-oss-120b triages, Gemini 3.5 Flash-Lite and Qwen 3.8 27B vote,
+  gpt-oss-safeguard-20b audits the rules, Qwen drafts, Flash-Lite verifies, Prompt Guard 2 screens.
+- **Dutch:** read in Dutch, reasoned in English, drafted in the customer's language. Drafts are checked
+  without reading Dutch: nine code checks against `faq.md` (language, u or je, menu paths, numbers,
+  links, payment data, promises), then a back-translation whose claims must all be in the cited entries.
+  Cost: one extra call per reply.
+- **A Postgres journal** prevents double answers; pgvector search only logs a cross-check.
+- **Open points:** unsure means any rule hit, disagreement or failed check. Price questions get F05;
+  plan changes are contract changes (P2). GDPR at least P2, security and legal threats P1, thank-you
+  notes a P4 handoff, automatic replies closed.
+- **AI tools:** Claude Code as a pair programmer for research, most code, tests and docs. I set the
+  constraints, made the product calls and reviewed the work.
 
 ## Reliability
 
-- **503:** retried with exponential backoff and jitter, up to six attempts; the helpdesk saved nothing.
-- **429:** one pacer shared by every worker keeps calls at four a second. A 429 pauses every worker
-  for its `Retry-After`.
-- **409:** never retried; the ticket is recorded as already handled.
-- **Crash:** each ticket moves `new → deciding → decided → posting → done` in Postgres, every step a
-  compare-and-swap. The decision is frozen before the POST, and a POST whose outcome is unknown is
-  settled by reading the ticket, never by resending. Tests crash the run at four points with one and
-  four workers; every re-run answers each ticket exactly once.
+- **503:** backoff with jitter, six tries. **429:** one pacer at four calls a second for all workers,
+  which all wait out `Retry-After`. **409:** never retried; recorded as answered.
+- **Crashes:** `new → deciding → decided → posting → done`, each a compare-and-swap. Decisions are frozen
+  before the POST; a lost response is settled by a GET, never resent. 24 crash tests answer every ticket
+  exactly once.
+- **Outages:** retry, then a backup model. If every model for a step is down, the ticket stays open.
+- **Privacy:** IBANs, cards and BSNs are redacted before any model, store or log; no ticket text is
+  stored; one redacted JSON line per ticket in `logs/`; keys from the environment.
 
 ## Eval and fix
 
-_To come: the eval on the 10 labelled examples, one fix with before and after numbers, and the cost per
-100 tickets._
+Each labelled example runs three times without posting; gpt-oss-120b judges the replies
+([eval/results](eval/results)).
+
+| 30 runs | Unsafe | Needless handoffs | Action | Category | Priority | Language | Judge passed |
+|---|---|---|---|---|---|---|---|
+| Baseline | 0 | 11 | 19 | 21 | 25 | 30 | 7/7 |
+| Fix 1 | 0 | 13 | 17 | **27** | 24 | 30 | 5/5 |
+| Fix 2 | 0 | 11 | 19 | 27 | 24 | 30 | 7/7 |
+
+- **Fix 1:** all nine category misses were "question", on billing and GDPR tickets: the prompt never
+  defined the categories. Defining them by subject: 21 to 27 of 30 (too few examples to prove it,
+  McNemar p = 1.0).
+- **Fix 2:** our rule that a price question is not a contract change was missing from the prompts. Price
+  questions now pass the votes; the verifier rightly stops two of three replies that omit the total.
+- **Cost:** $0.21 per 100 tickets = reported tokens (about 4,000 a ticket) × list prices of 16 November
+  per million input/output tokens: gpt-oss-120b $0.35/$0.75, Qwen $0.80/$4.00, Flash-Lite $0.10/$0.40
+  (assumed), safeguard $0.075/$0.30. Spent: €0.
 
 ## What I would improve
 
-_To come._
+- **Next:** compute totals from FAQ prices, with check G4 redoing the sum; then grow the eval with
+  synthetic tickets a person labels, before loosening what counts as an answer (the model still hands
+  off a crash that F12 explains). Cloudflare hosting in `cloudflare/` is built, not deployed.
+- **Client rules:** define a contract change as a request to change the plan, seats or terms, and say
+  that a price question is not one.

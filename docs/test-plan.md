@@ -95,7 +95,7 @@ against the real helpdesk on its own schedule. No browser tests: the brief needs
 | PII-07 | Log lines on Windows | Valid UTF-8, one JSON object per line | ✅ |
 | TXT-01 | Zero-width characters, HTML comments, tag characters | Stripped and flagged before any check | ✅ |
 | TXT-02 | Homoglyphs (Cyrillic "е" in "terugbеtaling") | Mapped to Latin inside mixed-script words, so the refund rule still fires | ✅ |
-| TXT-03 | Empty, whitespace-only and 10,000-character tickets | Empty: close; long: handled within token limits | Phase 4 |
+| TXT-03 | Empty, whitespace-only and 10,000-character tickets | Empty: close; long: handled within token limits | ✅ empty and whitespace; long tickets planned |
 | TXT-04 | Emoji, markdown, quoted email threads, signatures and disclaimers | No crash; disclaimers do not trigger the legal rule | ✅ property test, disclaimer trap |
 
 ## 5. Ticket assumptions and content scenarios (Phase 5)
@@ -114,6 +114,9 @@ tested model never writes labels.
 | CS-31–CS-34 | Nmbrs question on Basis, Plus and a missing plan | Reply, with the Plus caveat when needed |
 | CS-40 | Customer number that fails Luhn | Reply F06, number not echoed |
 | CS-41–CS-48 | Multi-question tickets, partly covered | Handoff with FAQ pointers when any question is uncovered |
+
+Status: planned. The routing behind these cases is tested with scripted models (section 7), but the
+synthetic tickets themselves are not written yet: their labels need a human's approval first.
 
 Behavioural tests in the style of CheckList (Ribeiro et al., ACL 2020):
 
@@ -146,43 +149,47 @@ template. The model-facing attacks are tested live in Phases 4 and 5.
 
 ## 7. The AI decision steps (Phase 4)
 
-| ID | Scenario | Expected |
-|---|---|---|
-| AG-01 | Every model output | Valid against the strict JSON schema, or one repair, then handoff |
-| AG-02 | The nine decision steps | Pure functions: no network writes, no database writes |
-| AG-03 | Votes disagree on action or FAQ entry | Handoff |
-| AG-04 | Any rule hit, from any signal (property test) | Can only escalate: never turns a handoff into a reply, never lowers a priority |
-| AG-05 | Plan-aware answers (F04, F07 need Plus) | Basis customers get the Plus caveat |
-| AG-06 | A model refuses | Treated as a handoff, not an outage |
-| AG-07 | Output truncated | Repair once, then handoff |
-| AG-08 | Prompts | Hashed into every log line and eval report |
+| ID | Scenario | Expected | Status |
+|---|---|---|---|
+| AG-01 | Every model output | Valid against the strict JSON schema, or retried, then the next model | ✅ |
+| AG-02 | The decision steps | No helpdesk writes inside the graph; the POST happens in the runner | ✅ |
+| AG-03 | Votes disagree on action or FAQ entry | Handoff | ✅ |
+| AG-04 | Any signal (property test) | Can only escalate: never turns a handoff into a reply, never lowers a priority | ✅ |
+| AG-05 | Plan-aware answers (F04, F07 need Plus) | Basis customers get the Plus caveat and the upgrade entry | ✅ |
+| AG-06 | A draft fails the checks | One repair with the failures listed, then handoff | ✅ |
+| AG-07 | The verifier rejects a reply | Handoff | ✅ |
+| AG-08 | Prompts | Hashed into every trace and eval report | ✅ |
+| AG-09 | Empty tickets and automatic replies | Closed without any model call | ✅ |
+| AG-10 | The trace | Holds codes, models, tokens and cost but no ticket text | ✅ |
 
 ## 8. Backup models and fallbacks (Phase 4)
 
-| ID | Scenario | Expected |
-|---|---|---|
-| FL-01 | Primary model returns 503 | Next model in the role's list answers |
-| FL-02 | `Retry-After: 3600` from a provider | Provider marked exhausted for the rest of the run |
-| FL-03 | Every model for a step down | Ticket stays open; run exits with code 3; no flood of handoffs |
-| FL-04 | Fallback lands on the drafter's model family | Verifier and judge switch to another family |
-| FL-05 | Malformed JSON | One repair call with the error text, then handoff |
-| FL-06 | Embeddings down | Retrieval marked unavailable; every ticket is still decided |
-| FL-07 | Token budget nearly used up | Run pauses instead of failing tickets |
+| ID | Scenario | Expected | Status |
+|---|---|---|---|
+| FL-01 | Primary model fails | Retried once on the same model, then the next model answers | ✅ |
+| FL-02 | A provider says the daily quota is used up | Model skipped for the rest of the run | ✅ |
+| FL-03 | Every model for a step down | Ticket stays open; run exits with code 3; no flood of handoffs | ✅ |
+| FL-04 | A rule ticket during a full outage | Still handed off, from the rules alone | ✅ |
+| FL-05 | Fallback lands on the drafter's model family | Verifier switches to another family | ✅ |
+| FL-06 | Embeddings down | Retrieval marked unavailable; every ticket is still decided | ✅ |
+| FL-07 | Token budget nearly used up | The rolling window waits instead of failing | ✅ |
 
 ## 9. The judge and the eval (Phase 5)
 
-| ID | Scenario | Expected |
-|---|---|---|
-| EV-01 | Judge model family | Differs from both the drafter's and the verifier's |
-| EV-02 | Judge on 10 deliberately broken and 10 clean drafts | Catches the broken ones; report its accuracy |
-| EV-03 | Labels | Only from `GET /examples` or written by construction |
-| EV-04 | Small sample | Results reported with Wilson 95 % intervals |
-| EV-05 | Consistency | pass^k over k = 3 repeats |
-| EV-06 | Before and after the fix | Paired flip table and McNemar test |
-| EV-07 | CI replay gate | Recorded model outputs give the same decisions through the current code |
-| EV-08 | CI freshness gate | A prompt or model change without a fresh eval fails the build |
-| EV-09 | CI threshold gate | Zero safety failures; no pass-to-fail flips; handoff rate no worse than baseline |
-| EV-10 | Cost per 100 tickets | From provider-reported tokens times dated list prices |
+| ID | Scenario | Expected | Status |
+|---|---|---|---|
+| EV-01 | Judge model family | Differs from both the drafter's and the verifier's | ✅ gpt-oss judges, Qwen drafts, Flash-Lite verifies; not enforced after a drafting fallback |
+| EV-02 | Judge on 10 deliberately broken and 10 clean drafts | Catches the broken ones; report its accuracy | Planned |
+| EV-03 | Labels | Only from `GET /examples` or written by construction | ✅ |
+| EV-04 | Small sample | Results reported with Wilson 95 % intervals | ✅ |
+| EV-05 | Consistency | pass^k over k = 3 repeats | ✅ |
+| EV-06 | Before and after the fix | Paired flip table and McNemar test | ✅ `eval --compare-with` |
+| EV-07 | CI replay gate | Recorded model outputs give the same decisions through the current code | Planned |
+| EV-08 | CI freshness gate | A prompt or model change without a fresh eval fails the build | Planned |
+| EV-09 | CI threshold gate | Zero safety failures; no pass-to-fail flips; handoff rate no worse than baseline | Planned |
+| EV-10 | Cost per 100 tickets | From provider-reported tokens times dated list prices | ✅ |
+| EV-11 | A reply ticket handed off | Counted as a needless handoff, not a safety failure | ✅ |
+| EV-12 | A provider outage during the eval | Counted as wrong and reported, never silently dropped | ✅ |
 
 ## 10. Checking Dutch replies without reading Dutch (Phases 3–4)
 
@@ -200,7 +207,7 @@ template. The model-facing attacks are tested live in Phases 4 and 5.
 Target: 100 % of these mutations caught by the deterministic checks; the verifier's catch rate on
 meaning-level mutations is reported separately. Status: ✅ thirteen mutations (O-01 to O-07 plus a
 wrong greeting name, an FAQ ID, an email address, a markdown link, JSON and an unknown quoted label)
-are all caught; O-08 is the plan check in Phase 4.
+are all caught; O-08 is caught by the plan check in the drafting step (Phase 4 ✅).
 
 ## 11. Command line and operations (Phases 1–3)
 
@@ -221,14 +228,15 @@ are all caught; O-08 is the plan check in Phase 4.
 | CT-01 | Read-only shapes of `/status`, `/tickets`, `/tickets/{id}`, `/examples` and a 404 | ✅ 17 November |
 | CT-02 | The fake helpdesk matches those shapes | ✅ |
 | CT-03 | Practice writes and the shape of `handled` | ✅ 17 November: 30 drill decisions posted, then reset; `handled` is `{at, action}` and the fake matches |
-| CT-04 | Each model returns at least 9 of 10 valid structured outputs | Phase 4 |
+| CT-04 | Each model returns at least 9 of 10 valid structured outputs | ✅ 17 November: Qwen 9 of 10 with hidden reasoning (5 of 10 with thinking off, so it stays on); gpt-oss-120b answered all 30 triage calls of the fix 2 eval; a failed vote falls back to the other voter |
 
 Writes to the real helpdesk happen only in practice mode and never after the final run.
 
 ## 13. Cloudflare (Phase 6) and end to end (Phase 7)
 
-| ID | Scenario | Expected |
-|---|---|---|
-| D-01–D-13 | Deployment smoke: health shows commit and mode with no secrets; unauthenticated calls refused; dry run posts nothing; final-run lock returns 423 | All pass before any hosted practice run |
-| UA-1–UA-8 | Your hands-on Cloudflare checks | Wednesday's practice window only |
-| X-01–X-08 | Real practice runs: sequential, concurrent, crash demo, dress rehearsal, fresh-clone test, final run | Thursday's final run is the last write |
+| ID | Scenario | Expected | Status |
+|---|---|---|---|
+| D-00 | The Docker image | Builds from a clean checkout, runs as a non-root user, prints its help | ✅ |
+| D-01–D-13 | Deployment smoke: health shows mode with no secrets; unauthenticated calls refused; dry run posts nothing; runs disabled return 423 | All pass before any hosted practice run | Worker written and type-checked; the deploy needs your approval |
+| UA-1–UA-8 | Your hands-on Cloudflare checks | Practice window only | Waiting for the deploy |
+| X-01–X-08 | Real practice runs: sequential, concurrent, crash demo, dress rehearsal, fresh-clone test, final run | The final run is the last write | Drill runs ✅; the final run is yours |
