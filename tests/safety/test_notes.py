@@ -33,6 +33,17 @@ def test_a_note_without_rules_uses_the_generic_next_step_and_a_plan_placeholder(
     assert note.endswith(f"Next step: {GENERIC_NEXT_STEP}")
 
 
+def test_a_reason_that_already_ends_with_a_full_stop_gets_no_second_one() -> None:
+    note = handoff_note(
+        priority=Priority.P3,
+        category=Category.BUG,
+        language=Language.ENGLISH,
+        plan="Basis",
+        reasons=["The crash needs an engineer."],
+    )
+    assert "Why a human: The crash needs an engineer." in note.splitlines()
+
+
 def test_a_long_summary_is_shortened() -> None:
     note = handoff_note(
         priority=Priority.P4,

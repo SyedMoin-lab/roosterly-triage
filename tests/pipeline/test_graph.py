@@ -66,6 +66,24 @@ async def test_a_disagreeing_vote_sends_the_ticket_to_a_human(
     assert models.called()["DraftReply"] == 0
 
 
+async def test_a_vote_that_keeps_failing_is_cast_by_the_other_voting_model(
+    pipeline: Pipeline, models: ScriptedModels
+) -> None:
+    models.down = {QWEN.model}
+    decision = (await pipeline.run(ticket(QUESTION)))["decision"]
+    voters = Counter(model for model, schema in models.calls if schema == "TriageProposal")
+    assert decision.action is Action.REPLY
+    assert voters == Counter({GPT_OSS.model: 1, QWEN.model: 2, FLASH_LITE.model: 2})
+
+
+async def test_the_ticket_stays_open_when_neither_voting_model_answers(
+    pipeline: Pipeline, models: ScriptedModels
+) -> None:
+    models.down = {QWEN.model, FLASH_LITE.model}
+    with pytest.raises(ProviderOutageError):
+        await pipeline.run(ticket(QUESTION))
+
+
 async def test_a_question_without_an_faq_entry_is_handed_off(
     pipeline: Pipeline, models: ScriptedModels
 ) -> None:

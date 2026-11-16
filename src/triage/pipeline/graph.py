@@ -20,6 +20,7 @@ from triage.llm.roster import (
     TRIAGE_MODELS,
     VERIFYING_MODELS,
     VOTING_MODELS,
+    ModelSpec,
     other_families,
 )
 from triage.pipeline.policy import Route, decide_route, is_suspicious, needs_plus_caveat
@@ -150,7 +151,9 @@ class Pipeline:
         messages = triage_messages(prepared, self._faq, state["nonce"])
         outcomes = await asyncio.gather(
             *(
-                self._gateway.structured("vote", TriageProposal, messages, (voter,), calls[index])
+                self._gateway.structured(
+                    "vote", TriageProposal, messages, _with_backup(voter, voters), calls[index]
+                )
                 for index, voter in enumerate(voters)
             ),
             self._gateway.structured(
@@ -255,6 +258,10 @@ class PipelineDecider:
         return Verdict(state["decision"], build_trace(state, self._faq))
 
 
+def _with_backup(voter: ModelSpec, voters: tuple[ModelSpec, ...]) -> tuple[ModelSpec, ...]:
+    return (voter, *(spec for spec in voters if spec is not voter))
+
+
 def build_decision(state: State) -> Decision:
     route, prepared = state["route"], state["prepared"]
     triage = state.get("triage")
@@ -357,7 +364,7 @@ def _handoff_reason(prepared: Prepared, route: Route) -> str:
         summary = prepared.hits[0].rule.summary
         return _clip(f"{summary[0].upper()}{summary[1:]}: the client's rules send it to a human.")
     if route.reasons:
-        return _clip(f"Handed to a human: {route.reasons[-1]}.")
+        return _clip(f"Handed to a human: {route.reasons[-1].rstrip(' .')}.")
     return "Handed to a human."
 
 
