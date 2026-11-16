@@ -50,7 +50,7 @@ GPT_OSS = ModelSpec(
     Provider.GROQ,
     "openai/gpt-oss-120b",
     family="gpt-oss",
-    max_tokens=1200,
+    max_tokens=900,
     tokens_per_minute=7200,
     requests_per_minute=28,
     usd_per_million_input=0.35,

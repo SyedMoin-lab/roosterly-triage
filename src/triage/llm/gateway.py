@@ -198,7 +198,7 @@ def _record(
 
 
 def _estimated_tokens(messages: Messages) -> int:
-    return sum(len(content) for _, content in messages) // 3 + 1
+    return sum(len(content) for _, content in messages) // 4 + 1
 
 
 def _elapsed_ms(started: float) -> int:
