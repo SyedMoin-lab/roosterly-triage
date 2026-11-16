@@ -16,6 +16,8 @@ poetry run python scripts/check.py                   # ruff, mypy --strict, 331 
 
 Final run: `triage reset --yes`, `triage run`, then `triage lock` to refuse later runs. Exit code 1 or 3:
 run again to finish. With Windows Smart App Control: `python -m venv .venv`, then `python -m poetry`.
+The scored run on 17 November posted 30 decisions in 10 minutes; its log is
+[logs/20261116T224609Z-7ac058f5.jsonl](logs/20261116T224609Z-7ac058f5.jsonl).
 
 ## Decisions
 
