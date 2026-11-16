@@ -7,6 +7,9 @@
 
 # --- local state (journal DB, eval cache, traces) ---
 state/
+
+# --- run logs: only the final scored run's log is committed, with `git add -f` ---
+logs/*.jsonl
 *.db
 *.sqlite
 *.sqlite3
