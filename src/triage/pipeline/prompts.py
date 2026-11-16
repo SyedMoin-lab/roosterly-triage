@@ -27,14 +27,18 @@ legal threats; customers threatening to leave.
 
 Fill in:
 - language: the language the customer wrote in: nl, en or de.
-- category: bug, billing, feature_request, question or other.
+- category: what the ticket is about, not the form it takes: bug (something in the app does not \
+work as it should), billing (money and the subscription: prices, plans, invoices, payments), \
+feature_request (a wish for something the app does not do), question (how to use the app), \
+other (anything else).
 - priority: P1 many users blocked right now, or a security or legal risk. P2 one customer \
 blocked, or money or the contract is involved. P3 something is wrong or unclear, but there is a \
 workaround. P4 no urgency: how-to questions, ideas, cosmetic issues.
 - questions: every question or request in the ticket, written in English, each with the id of \
 the help-centre entry that fully answers it, or "none".
 - action: "reply" only if every question has an entry and no client rule applies; "close" only \
-for spam or an empty ticket; otherwise "handoff".
+for spam or an empty ticket; otherwise "handoff". The category does not decide the action: a bug, \
+a billing question or an idea gets a reply when an entry answers it.
 - evidence: short quotes copied word for word from the entries you cite.
 - english_summary: one or two English sentences on what the customer wants, without names, \
 numbers or payment details.
