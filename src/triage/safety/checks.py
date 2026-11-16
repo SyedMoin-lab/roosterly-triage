@@ -150,7 +150,7 @@ def _check_numbers(draft: str, cited: Sequence[FaqEntry]) -> list[CheckFailure]:
 
 
 def _check_menu_paths(draft: str, cited: Sequence[FaqEntry]) -> list[CheckFailure]:
-    known_paths = [path for entry in cited for path in entry.menu_paths]
+    known_paths = [path for entry in cited for path in entry.all_menu_paths]
     known_labels = {label.casefold() for entry in cited for label in entry.labels}
     unknown_paths = [
         CheckFailure("G5", f"menu path not in the cited FAQ: {chain}")

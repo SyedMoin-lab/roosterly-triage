@@ -24,6 +24,13 @@ def test_menu_paths_keep_the_dutch_labels_only(faq: Faq) -> None:
     assert all("Settings" not in path for entry in faq.entries for path in entry.menu_paths)
 
 
+def test_english_meanings_of_menu_paths_are_kept_as_translations(faq: Faq) -> None:
+    assert ("Settings", "Integrations", "Payroll") in faq["F04"].translated_menu_paths
+    assert ("Team", "Add employee") in faq["F02"].translated_menu_paths
+    assert ("Profile", "Language") in faq["F08"].all_menu_paths
+    assert ("Profiel", "Taal") in faq["F08"].all_menu_paths
+
+
 def test_labels_urls_and_numbers_are_extracted(faq: Faq) -> None:
     assert "Wachtwoord vergeten" in faq["F01"].labels
     assert "Uitnodigen" in faq["F02"].labels

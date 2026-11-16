@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 
 from triage import __version__
-from triage.config import DatabaseSettings, HelpdeskSettings
+from triage.config import DatabaseSettings, HelpdeskSettings, ModelSettings
 from triage.deciders import Decider, DrillDecider
 from triage.helpdesk.client import HelpdeskClient
 from triage.helpdesk.errors import AuthenticationError, HelpdeskError
@@ -18,10 +18,19 @@ from triage.helpdesk.models import HelpdeskStatus
 from triage.journal.locks import RunnerAlreadyActiveError, runner_lock
 from triage.journal.migrate import apply_migrations
 from triage.journal.store import open_journal
+from triage.knowledge.faq import load_faq
+from triage.llm.gateway import ModelGateway
+from triage.pipeline.graph import Pipeline, PipelineDecider
 from triage.runlog import RunLog
 from triage.runner import ExitCode, FinalRunLockedError, Runner, RunOptions
 
-DECIDERS: dict[str, Callable[[], Decider]] = {"drill": DrillDecider}
+
+def _pipeline_decider() -> Decider:
+    faq = load_faq()
+    return PipelineDecider(Pipeline(ModelGateway(load(ModelSettings)), faq), faq)
+
+
+DECIDERS: dict[str, Callable[[], Decider]] = {"pipeline": _pipeline_decider, "drill": DrillDecider}
 
 
 class ConfigurationError(Exception):
@@ -69,7 +78,12 @@ def build_parser() -> argparse.ArgumentParser:
     status.set_defaults(handler=status_command)
 
     run = commands.add_parser("run", help="decide and post one decision per open ticket")
-    run.add_argument("--decider", choices=sorted(DECIDERS), required=True)
+    run.add_argument(
+        "--decider",
+        choices=sorted(DECIDERS),
+        default="pipeline",
+        help="pipeline: the AI agent (default); drill: hand off everything, no model calls",
+    )
     run.add_argument("--dry-run", action="store_true", help="decide, but post nothing")
     run.add_argument("--limit", type=_positive_int, help="handle at most N tickets")
     run.add_argument("--concurrency", type=_positive_int, default=4, help="tickets at once")

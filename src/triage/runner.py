@@ -1,7 +1,7 @@
 import asyncio
 import time
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum
 from uuid import UUID
@@ -72,6 +72,7 @@ class _Result:
     outcome: Outcome
     decision: Decision | None = None
     detail: str | None = None
+    trace: Mapping[str, object] = field(default_factory=dict)
 
 
 def _never_crash(point: str, ticket_id: str) -> None:
@@ -203,12 +204,13 @@ class Runner:
             await self._release(epoch, ticket.id)
             return _Result(Outcome.DECIDE_FAILED, detail=f"{type(error).__name__}: {error}")
         if dry_run:
-            return _Result(Outcome.PREVIEWED, verdict.decision)
+            return _Result(Outcome.PREVIEWED, verdict.decision, trace=verdict.trace)
         await self._journal.record_decision(
             epoch, ticket.id, self._run_id, verdict.decision, verdict.trace
         )
         self._crash("after_decision", ticket.id)
-        return _Result(await self._deliver(epoch, ticket.id, verdict.decision), verdict.decision)
+        outcome = await self._deliver(epoch, ticket.id, verdict.decision)
+        return _Result(outcome, verdict.decision, trace=verdict.trace)
 
     async def _deliver(self, epoch: int, ticket_id: str, decision: Decision) -> Outcome:
         for _ in range(self._options.max_post_attempts):
@@ -290,6 +292,10 @@ class Runner:
             category=None if decision is None else decision.category.value,
             priority=None if decision is None else decision.priority.value,
             confidence=None if decision is None else decision.confidence,
+            reason=None if decision is None else decision.reason,
+            codes=result.trace.get("codes", []),
+            tokens=result.trace.get("tokens"),
+            cost_usd=result.trace.get("cost_usd"),
             detail=result.detail,
             duration_ms=round(seconds * 1000),
         )

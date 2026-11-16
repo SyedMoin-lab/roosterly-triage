@@ -9,6 +9,7 @@ _HEADING = re.compile(r"^## (F\d{2}) · (.+)$")
 _BRACKETED = re.compile(r"\s*\([^)]*\)")
 _LABEL = r"[A-Z][a-z]+(?: [a-z]+)*"
 _CHAIN = re.compile(rf"{_LABEL}(?: → {_LABEL})+")
+_CHAIN_WITH_MEANING = re.compile(rf"({_LABEL}(?: → {_LABEL})+) \(([^)]*)\)")
 _QUOTED = re.compile(r'"([^"]+)"')
 _LABEL_BEFORE_MEANING = re.compile(rf"({_LABEL}) \([A-Z][^)]*\)")
 _URL = re.compile(r"\b(?:[a-z0-9-]+\.)+(?:nl|com|eu)(?:/[\w/-]*)?", re.IGNORECASE)
@@ -21,6 +22,7 @@ class FaqEntry:
     title: str
     text: str
     menu_paths: tuple[tuple[str, ...], ...]
+    translated_menu_paths: tuple[tuple[str, ...], ...]
     labels: frozenset[str]
     urls: frozenset[str]
     numbers: frozenset[str]
@@ -34,7 +36,13 @@ class FaqEntry:
         labels.update(_LABEL_BEFORE_MEANING.findall(text))
         urls = frozenset(url.lower() for url in _URL.findall(text))
         numbers = frozenset(_NUMBER.findall(_URL.sub(" ", text)))
-        return cls(entry_id, title, text, paths, frozenset(labels), urls, numbers)
+        return cls(
+            entry_id, title, text, paths, _translated_paths(text), frozenset(labels), urls, numbers
+        )
+
+    @property
+    def all_menu_paths(self) -> tuple[tuple[str, ...], ...]:
+        return self.menu_paths + self.translated_menu_paths
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +88,17 @@ def parse_faq(markdown: str) -> Faq:
 
 def load_faq(path: Path = DEFAULT_FAQ_PATH) -> Faq:
     return parse_faq(path.read_text(encoding="utf-8"))
+
+
+def _translated_paths(text: str) -> tuple[tuple[str, ...], ...]:
+    translated = []
+    for dutch, meaning in _CHAIN_WITH_MEANING.findall(text):
+        items = dutch.split(" → ")
+        if " → " in meaning:
+            translated.append(tuple(meaning.split(" → ")))
+        else:
+            translated.append((*items[:-1], meaning))
+    return tuple(translated)
 
 
 def _parse_rules(text: str) -> tuple[str, ...]:

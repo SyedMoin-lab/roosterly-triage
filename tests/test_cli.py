@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from triage import __version__
-from triage.cli import format_status, main
+from triage.cli import build_parser, format_status, main
 from triage.helpdesk.models import HelpdeskStatus
 
 
@@ -53,10 +53,9 @@ def test_an_unreachable_database_stops_the_run_before_the_helpdesk_is_touched(
     assert "Database error" in capsys.readouterr().err
 
 
-def test_run_requires_an_explicit_decider() -> None:
-    with pytest.raises(SystemExit) as exit_info:
-        main(["run"])
-    assert exit_info.value.code == 2
+def test_run_uses_the_ai_pipeline_unless_told_otherwise() -> None:
+    assert build_parser().parse_args(["run"]).decider == "pipeline"
+    assert build_parser().parse_args(["run", "--decider", "drill"]).decider == "drill"
 
 
 def test_reset_needs_confirmation(capsys: pytest.CaptureFixture[str]) -> None:
