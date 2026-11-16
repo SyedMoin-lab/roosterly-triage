@@ -15,6 +15,10 @@ class Journal:
     def __init__(self, pool: Pool) -> None:
         self._pool = pool
 
+    @property
+    def pool(self) -> Pool:
+        return self._pool
+
     async def current_epoch(self) -> int | None:
         value = await self._pool.fetchval("SELECT max(epoch) FROM epochs")
         return None if value is None else int(value)

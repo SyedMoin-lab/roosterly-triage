@@ -1,36 +1,40 @@
 import argparse
 import asyncio
+import json
 import sys
 import uuid
-from collections.abc import Callable
+from contextlib import AsyncExitStack
+from datetime import UTC, datetime
 from pathlib import Path
 
 import asyncpg
+import httpx
+import openai
 from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 
 from triage import __version__
 from triage.config import DatabaseSettings, HelpdeskSettings, ModelSettings
 from triage.deciders import Decider, DrillDecider
+from triage.evaluation.judge import Judge
+from triage.evaluation.runner import compare_with, evaluate, summary, write_results
+from triage.evaluation.scoring import score
 from triage.helpdesk.client import HelpdeskClient
 from triage.helpdesk.errors import AuthenticationError, HelpdeskError
 from triage.helpdesk.models import HelpdeskStatus
 from triage.journal.locks import RunnerAlreadyActiveError, runner_lock
 from triage.journal.migrate import apply_migrations
-from triage.journal.store import open_journal
-from triage.knowledge.faq import load_faq
+from triage.journal.store import Journal, open_journal
+from triage.knowledge.faq import Faq, load_faq
 from triage.llm.gateway import ModelGateway
+from triage.llm.roster import DRAFTING_MODELS, PRICES_AS_OF, TRIAGE_MODELS
 from triage.pipeline.graph import Pipeline, PipelineDecider
+from triage.pipeline.prompts import PROMPT_VERSIONS
+from triage.retrieval import FaqIndex, GeminiEmbedder
 from triage.runlog import RunLog
 from triage.runner import ExitCode, FinalRunLockedError, Runner, RunOptions
 
-
-def _pipeline_decider() -> Decider:
-    faq = load_faq()
-    return PipelineDecider(Pipeline(ModelGateway(load(ModelSettings)), faq), faq)
-
-
-DECIDERS: dict[str, Callable[[], Decider]] = {"pipeline": _pipeline_decider, "drill": DrillDecider}
+DECIDER_NAMES = ("pipeline", "drill")
 
 
 class ConfigurationError(Exception):
@@ -80,7 +84,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run", help="decide and post one decision per open ticket")
     run.add_argument(
         "--decider",
-        choices=sorted(DECIDERS),
+        choices=DECIDER_NAMES,
         default="pipeline",
         help="pipeline: the AI agent (default); drill: hand off everything, no model calls",
     )
@@ -89,6 +93,13 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--concurrency", type=_positive_int, default=4, help="tickets at once")
     run.add_argument("--log-dir", type=Path, default=Path("logs"))
     run.set_defaults(handler=run_command)
+
+    evaluation = commands.add_parser("eval", help="score the agent on the labelled examples")
+    evaluation.add_argument("--repeats", type=_positive_int, default=3)
+    evaluation.add_argument("--name", default="baseline", help="file name under eval/results")
+    evaluation.add_argument("--compare-with", type=Path, help="an earlier results JSON file")
+    evaluation.add_argument("--no-judge", action="store_true", help="skip the reply judge")
+    evaluation.set_defaults(handler=eval_command)
 
     migrate = commands.add_parser("migrate", help="apply the database migrations")
     migrate.set_defaults(handler=migrate_command)
@@ -132,7 +143,7 @@ async def status_command(args: argparse.Namespace) -> int:
 async def run_command(args: argparse.Namespace) -> int:
     helpdesk_settings = load(HelpdeskSettings)
     database_url = load(DatabaseSettings).database_url.get_secret_value()
-    decider = DECIDERS[args.decider]()
+    model_settings = load(ModelSettings) if args.decider == "pipeline" else None
     options = RunOptions(dry_run=args.dry_run, limit=args.limit, concurrency=args.concurrency)
     run_id = uuid.uuid4()
     try:
@@ -141,6 +152,7 @@ async def run_command(args: argparse.Namespace) -> int:
             open_journal(database_url, max_connections=args.concurrency + 2) as journal,
             HelpdeskClient.from_settings(helpdesk_settings) as helpdesk,
         ):
+            decider = await build_decider(model_settings, journal)
             with RunLog(args.log_dir, run_id) as log:
                 runner = Runner(
                     helpdesk=helpdesk,
@@ -160,6 +172,62 @@ async def run_command(args: argparse.Namespace) -> int:
     except FinalRunLockedError as error:
         print(error, file=sys.stderr)
         return ExitCode.LOCKED
+
+
+async def build_decider(model_settings: ModelSettings | None, journal: Journal) -> Decider:
+    if model_settings is None:
+        return DrillDecider()
+    faq = load_faq()
+    retriever = await faq_index(journal, model_settings, faq)
+    return PipelineDecider(Pipeline(ModelGateway(model_settings), faq, retriever), faq)
+
+
+async def faq_index(journal: Journal, model_settings: ModelSettings, faq: Faq) -> FaqIndex | None:
+    index = FaqIndex(journal.pool, GeminiEmbedder(model_settings), faq)
+    try:
+        await index.sync()
+    except (openai.APIError, httpx.HTTPError, asyncpg.PostgresError) as error:
+        print(
+            f"FAQ retrieval is off ({type(error).__name__}); deciding without it.", file=sys.stderr
+        )
+        return None
+    return index
+
+
+async def eval_command(args: argparse.Namespace) -> int:
+    helpdesk_settings, model_settings = load(HelpdeskSettings), load(ModelSettings)
+    faq = load_faq()
+    gateway = ModelGateway(model_settings)
+    database_url = _optional_database_url()
+    async with HelpdeskClient.from_settings(helpdesk_settings) as helpdesk:
+        examples = await helpdesk.examples()
+    async with AsyncExitStack() as stack:
+        retriever = None
+        if database_url is not None:
+            journal = await stack.enter_async_context(open_journal(database_url))
+            retriever = await faq_index(journal, model_settings, faq)
+        attempts = await evaluate(
+            PipelineDecider(Pipeline(gateway, faq, retriever), faq),
+            examples,
+            repeats=args.repeats,
+            judge=None if args.no_judge else Judge(gateway, faq),
+        )
+    report = score(attempts)
+    notes: dict[str, object] = {
+        "run at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "repeats": args.repeats,
+        "models": {spec.family: spec.model for spec in (*TRIAGE_MODELS, *DRAFTING_MODELS)},
+        "prompt versions": PROMPT_VERSIONS,
+        "faq": faq.sha256[:12],
+        "prices as of": PRICES_AS_OF,
+    }
+    path = Path("eval/results") / args.name
+    write_results(path, report, title=f"Eval: {args.name}", notes=notes)
+    print(json.dumps(summary(report), indent=2))
+    if args.compare_with is not None:
+        print(compare_with(args.compare_with, report))
+    print(f"results: {path.with_suffix('.md')}")
+    return ExitCode.OK
 
 
 async def migrate_command(args: argparse.Namespace) -> int:

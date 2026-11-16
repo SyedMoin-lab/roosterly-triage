@@ -2,8 +2,11 @@ import asyncio
 import operator
 import secrets
 from dataclasses import asdict
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, Protocol, TypedDict, cast
 
+import asyncpg
+import httpx
+import openai
 from langgraph.graph import END, START, StateGraph
 
 from triage.deciders import Verdict
@@ -35,6 +38,11 @@ from triage.safety.redaction import redact, scrub
 
 MAX_REASON_CHARS = 480
 DRAFT_ATTEMPTS = 2
+_RETRIEVAL_ERRORS = (openai.APIError, httpx.HTTPError, asyncpg.PostgresError, OSError)
+
+
+class Retriever(Protocol):
+    async def search(self, text: str, language: Language) -> list[str]: ...
 
 
 class State(TypedDict, total=False):
@@ -42,6 +50,7 @@ class State(TypedDict, total=False):
     prepared: Prepared
     nonce: str
     injection_probability: float | None
+    retrieval: list[str] | None
     triage: TriageProposal | None
     triage_family: str
     votes: list[TriageProposal]
@@ -56,9 +65,10 @@ class State(TypedDict, total=False):
 
 
 class Pipeline:
-    def __init__(self, gateway: ModelGateway, faq: Faq) -> None:
+    def __init__(self, gateway: ModelGateway, faq: Faq, retriever: Retriever | None = None) -> None:
         self._gateway = gateway
         self._faq = faq
+        self._retriever = retriever
         graph = StateGraph(State)
         graph.add_node("prepare", self._prepare)
         graph.add_node("screen", self._screen)
@@ -92,8 +102,21 @@ class Pipeline:
 
     async def _screen(self, state: State) -> dict[str, Any]:
         calls: list[CallRecord] = []
-        probability = await self._gateway.injection_probability(state["prepared"].text, calls)
-        return {"injection_probability": probability, "calls": calls}
+        prepared = state["prepared"]
+        probability, retrieval = await asyncio.gather(
+            self._gateway.injection_probability(prepared.text, calls),
+            self._retrieve(prepared),
+        )
+        return {"injection_probability": probability, "retrieval": retrieval, "calls": calls}
+
+    async def _retrieve(self, prepared: Prepared) -> list[str] | None:
+        if self._retriever is None:
+            return None
+        language = prepared.detected_language or Language.DUTCH
+        try:
+            return await self._retriever.search(prepared.text, language)
+        except _RETRIEVAL_ERRORS:
+            return None
 
     async def _triage(self, state: State) -> dict[str, Any]:
         calls: list[CallRecord] = []
@@ -292,6 +315,8 @@ def build_trace(state: State, faq: Faq) -> dict[str, object]:
         "redacted": prepared.redacted,
         "detected_language": prepared.detected_language,
         "injection_probability": state.get("injection_probability"),
+        "retrieval": state.get("retrieval"),
+        "retrieval_agrees": _retrieval_agrees(state.get("retrieval"), triage),
         "triage": triage.model_dump(mode="json") if triage else None,
         "votes": [f"{vote.action}:{','.join(vote.faq_ids())}" for vote in state.get("votes", [])],
         "audit": audit.model_dump(mode="json") if audit else None,
@@ -313,6 +338,12 @@ def _reply_problem(state: State) -> tuple[str, str] | None:
     if verification is None or not verification.passed:
         return "the verifier found claims the help centre does not support", "VERIFY"
     return None
+
+
+def _retrieval_agrees(retrieval: list[str] | None, triage: TriageProposal | None) -> bool | None:
+    if retrieval is None or triage is None or not triage.faq_ids():
+        return None
+    return bool(set(retrieval) & set(triage.faq_ids()))
 
 
 def _english_summary(triage: TriageProposal | None) -> str | None:
