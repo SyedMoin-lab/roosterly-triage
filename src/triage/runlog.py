@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import IO, Self
 from uuid import UUID
 
-from triage.safety.redaction import redact
+from triage.safety.redaction import scrub
 
 
 class RunLog:
@@ -43,17 +43,7 @@ class RunLog:
             "ts": self._now().isoformat(timespec="milliseconds"),
             "run_id": str(self._run_id),
             "ticket_id": ticket_id,
-            **{key: _without_payment_details(value) for key, value in fields.items()},
+            **{key: scrub(value) for key, value in fields.items()},
         }
         self._file.write(json.dumps(line, ensure_ascii=False) + "\n")
         self._file.flush()
-
-
-def _without_payment_details(value: object) -> object:
-    if isinstance(value, str):
-        return redact(value).text
-    if isinstance(value, list | tuple):
-        return [_without_payment_details(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _without_payment_details(item) for key, item in value.items()}
-    return value

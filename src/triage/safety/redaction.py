@@ -36,6 +36,16 @@ def redact(text: str) -> Redaction:
     return Redaction(text, found)
 
 
+def scrub(value: object) -> object:
+    if isinstance(value, str):
+        return redact(value).text
+    if isinstance(value, list | tuple):
+        return [scrub(item) for item in value]
+    if isinstance(value, dict):
+        return {key: scrub(item) for key, item in value.items()}
+    return value
+
+
 def digit_runs(text: str) -> frozenset[str]:
     return frozenset(_LONG_DIGIT_RUN.findall(_SEPARATORS.sub("", text)))
 

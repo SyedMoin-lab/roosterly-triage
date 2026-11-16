@@ -35,6 +35,20 @@ class HelpdeskSettings(BaseSettings):
         return value
 
 
+class ModelSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    groq_api_key: SecretStr
+    gemini_api_key: SecretStr
+
+    @field_validator("groq_api_key", "gemini_api_key")
+    @classmethod
+    def _key_is_present(cls, value: SecretStr) -> SecretStr:
+        if not value.get_secret_value().strip():
+            raise ValueError("is empty")
+        return value
+
+
 class DatabaseSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
