@@ -25,6 +25,18 @@ def test_each_ticket_gets_one_json_line(tmp_path: Path) -> None:
     assert lines[0]["run_id"] == str(RUN_ID)
 
 
+def test_payment_details_never_reach_the_log(tmp_path: Path) -> None:
+    with RunLog(tmp_path, RUN_ID, now=fixed_now) as log:
+        log.write(
+            "T001",
+            detail="Kaart 4111 1111 1111 1111 en rekening NL91ABNA0417164300",
+            notes=["IBAN NL91 ABNA 0417 1643 00"],
+        )
+    line = json.loads(log.path.read_text(encoding="utf-8"))
+    assert line["detail"] == "Kaart [CARD] en rekening [IBAN]"
+    assert line["notes"] == ["IBAN [IBAN]"]
+
+
 def test_a_second_line_for_the_same_ticket_is_refused(tmp_path: Path) -> None:
     with RunLog(tmp_path, RUN_ID, now=fixed_now) as log:
         log.write("T001", outcome="posted")
