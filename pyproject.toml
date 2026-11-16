@@ -1,0 +1,19 @@
+[project]
+name = "roosterly-triage"
+version = "0.1.0"
+description = "Support-ticket triage agent for Roosterly's Dutch-language helpdesk (Nordavo take-home)"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[tool.poetry]
+package-mode = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.2.0,<10.0.0)"
+]

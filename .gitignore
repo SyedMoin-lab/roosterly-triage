@@ -1,0 +1,35 @@
+# --- secrets: never commit ---
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+
+# --- local state (journal DB, eval cache, traces) ---
+state/
+*.db
+*.sqlite
+*.sqlite3
+
+# --- python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# --- node / cloudflare ---
+node_modules/
+.wrangler/
+
+# --- os / editors ---
+.DS_Store
+Thumbs.db
+.idea/
