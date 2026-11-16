@@ -12,13 +12,17 @@ Needs Python 3.12 and [Poetry](https://python-poetry.org/) 2.x.
 ```bash
 poetry install                        # installs the exact versions pinned in poetry.lock
 cp .env.example .env                  # then fill in the keys
-poetry run python -m triage --help
-poetry run python -m pytest
+poetry run python -m triage status    # read-only: mode and ticket counts
+poetry run python scripts/check.py    # format, lint, types and tests, as in CI
 ```
 
 On Windows with Smart App Control on, create the environment first (`python -m venv .venv`) and run Poetry
 as `python -m poetry`: Smart App Control blocks the `poetry.exe` launcher and the environments Poetry
-creates by itself.
+creates by itself. Hypothesis is pinned to 6.155.7, the last release without a native extension, for
+the same reason.
+
+Every rule from the brief is traced to its code and test in [docs/requirements.md](docs/requirements.md);
+the QA scenarios are in [docs/test-plan.md](docs/test-plan.md).
 
 ## Decisions
 
