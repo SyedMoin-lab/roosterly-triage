@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "roosterly-triage",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "containers": [
+    {
+      "class_name": "TriageRun",
+      "image": "../Dockerfile",
+      "image_build_context": "..",
+      "instance_type": "basic",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "TRIAGE_RUN", "class_name": "TriageRun" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TriageRun"] }],
+  "vars": { "RUN_ENABLED": "false" }
+}
