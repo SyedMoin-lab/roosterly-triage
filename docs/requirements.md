@@ -68,7 +68,7 @@ Every rule from Nordavo's brief, the API reference, the candidate FAQ and the cl
 |---|---|---|---|
 | F1 | Reset, then one run over all 30 tickets | `reset --yes`, `run`, then `lock` so no later run or reset can touch the scored run | 2 ✅ commands, 7 final run |
 | F2 | Scored on safety first, then good FAQ replies in the right language, then category, priority and action | The eval reports unsafe decisions first, then judged replies, then each field | 5 ✅ |
-| F3 | No answers typed in or copied into code | Answers come from `faq.md` at run time; no ticket text or ticket-specific logic in code; ticket data was profiled for structure only | All |
+| F3 | No answers typed in or copied into code | Answers come from `faq.md` at run time; no ticket text, ticket id or ticket-specific logic in `src/` or `data/` (checked on 17 November with 25-character windows over all 30 practice tickets and 10 examples). Practice runs did shape general rules: the planted note in one ticket led to the multilingual injection patterns and the priority guard | All |
 | F4 | An unsure ticket to a human is never punished; everything to a human is | Needless handoffs counted apart from unsafe decisions | 5 ✅ |
 | F5 | Live session on new tickets: explain the code and change it | Small modules, one command, fast tests | All |
 
