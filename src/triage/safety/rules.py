@@ -224,6 +224,17 @@ _INJECTION = tuple(
         r"(?:^|\s)(?:system|assistant)\s*:\s",
         r"<\s*/?\s*(?:system|assistant|instructions?|prompt)\s*>",
         r"/practice/reset|/tickets/\w+/(?:reply|handoff|close)",
+        # Text addressed to an AI, which customers write to people, not to the support team.
+        r"\b(?:ai|ki)[- ]?(?:assistent|assistant|assistentin|agent|bot|model)\b",
+        r"\b(?:assistant|assistent)[- ]?(?:model|bot)\b",
+        r"\b(?:voor|aan|for|to|fur|an)\s+(?:de\s+|het\s+|the\s+|die\s+|den\s+|dem\s+)?"
+        r"(?:ai|ki|chatbot|bot|taalmodel|language\s+model|llm)\b",
+        # Orders to set the triage outcome, which only the agent decides.
+        r"\b(?:zet|stel|set|change|wijzig|verander|setze)\b(?:\s+\S+){0,3}?\s+"
+        r"(?:prioriteit|priority|prioritat|prio)\b",
+        r"\b(?:prioriteit|priority|prioritat)\s+(?:op|naar|to|auf|=|:)\s*p[1-4]\b",
+        r"\b(?:markeer|mark|markiere)\b(?:\s+\S+){0,3}?\s+(?:als|as)\s+"
+        r"(?:opgelost|resolved|gesloten|closed|erledigt|geschlossen|gelost)\b",
     )
 )
 

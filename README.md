@@ -11,7 +11,7 @@ docker compose up -d --wait db                       # Postgres 18 + pgvector
 poetry install && cp .env.example .env               # then fill in the keys
 poetry run python -m triage run --dry-run --limit 3  # decide three tickets, post nothing
 poetry run python -m triage eval                     # the 10 labelled examples, 3 runs each
-poetry run python scripts/check.py                   # ruff, mypy --strict, 356 tests, as in CI
+poetry run python scripts/check.py                   # ruff, mypy --strict, 368 tests, as in CI
 ```
 
 `run` and `eval` show each step live (`--quiet` hides it; `eval --limit 2` is a quick demo). Final run:
@@ -34,7 +34,8 @@ The scored run on 17 November posted 30 decisions in 10 minutes; its log is
 - **A Postgres journal** prevents double answers; pgvector search only logs a cross-check.
 - **Open points:** unsure means any rule hit, disagreement or failed check. Price questions get F05;
   plan changes are contract changes (P2). GDPR at least P2, security and legal threats P1, thank-you
-  notes a P4 handoff, automatic replies closed.
+  notes a P4 handoff, automatic replies closed. A ticket that instructs the agent goes to a person at
+  P2 (or a rule's floor): it never sets its own priority.
 - **AI tools:** Claude Code as a pair programmer for research, most code, tests and docs. I set the
   constraints, made the product calls and reviewed the work.
 

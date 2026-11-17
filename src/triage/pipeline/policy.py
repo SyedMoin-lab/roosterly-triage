@@ -7,6 +7,10 @@ from triage.pipeline.prepare import Prepared
 from triage.pipeline.schemas import NO_ENTRY, SafetyAudit, TriageProposal
 
 INJECTION_THRESHOLD = 0.5
+# Ticket text is data: a ticket that gives the agent instructions cannot set its own priority.
+# The triage model has read those instructions, so the code sets it (or a client rule's floor).
+INJECTION_PRIORITY = Priority.P2
+INJECTION_REASON = "the ticket contains instructions aimed at the agent"
 PLUS_ONLY_ENTRIES = frozenset({"F04", "F07"})
 UPGRADE_ENTRY = "F05"
 _RULE_CATEGORIES = {"R1": Category.BILLING, "R2": Category.BILLING}
@@ -58,17 +62,18 @@ def decide_route(
     if triage is None:
         return _without_a_model(prepared, rule_codes, rule_floor)
     language = prepared.detected_language or triage.language
+    suspicious = is_suspicious(prepared, injection_probability)
     base = Route(
         Action.HANDOFF,
         language,
         triage.category,
-        more_urgent(triage.priority, *rule_floor),
+        more_urgent(INJECTION_PRIORITY if suspicious else triage.priority, *rule_floor),
         codes=rule_codes,
     )
+    if suspicious:
+        return base.escalated(INJECTION_REASON, "INJECTION")
     if prepared.hits:
         return base
-    if is_suspicious(prepared, injection_probability):
-        return base.escalated("the ticket contains instructions aimed at the agent", "INJECTION")
     if audit is not None and audit.violation:
         return base.escalated(f"the safety audit matched client rule {audit.rule}", "AUDIT")
     if prepared.is_automatic_reply:

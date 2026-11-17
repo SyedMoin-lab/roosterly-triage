@@ -103,8 +103,11 @@ def test_the_policy_can_only_escalate(
         assert route.action is Action.HANDOFF
     for hit in hits:
         assert route.priority.value <= hit.rule.minimum_priority.value
-    if route.action is not Action.CLOSE:
+    if route.action is not Action.CLOSE and not suspicious:
         assert route.priority.value <= triage_priority.value
+    if suspicious:
+        floors = (hit.rule.minimum_priority for hit in hits)
+        assert route.priority is more_urgent(Priority.P2, *floors)
     if route.action is Action.REPLY:
         assert triage_action is Action.REPLY
         assert covered
@@ -115,3 +118,27 @@ def test_the_policy_can_only_escalate(
         assert triage_action is Action.CLOSE
         assert votes
         assert all(vote.action is Action.CLOSE for vote in votes)
+
+
+def test_a_ticket_that_instructs_the_agent_cannot_set_its_own_priority() -> None:
+    route = decide_route(
+        prepared(injection="ai-assistent"), proposal(priority=Priority.P1), [], None, None, FAQ
+    )
+    assert (route.action, route.priority, route.codes) == (
+        Action.HANDOFF,
+        Priority.P2,
+        ("INJECTION",),
+    )
+    assert route.reasons == ("the ticket contains instructions aimed at the agent",)
+
+
+def test_a_client_rule_still_raises_the_priority_of_an_instructing_ticket() -> None:
+    route = decide_route(
+        prepared(hits=(RuleHit(LEGAL, "advocaat"),), injection="ai-assistent"),
+        proposal(priority=Priority.P4),
+        [],
+        None,
+        None,
+        FAQ,
+    )
+    assert (route.priority, route.codes) == (Priority.P1, ("R5", "INJECTION"))
