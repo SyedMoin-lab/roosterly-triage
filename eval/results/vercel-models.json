@@ -1,0 +1,995 @@
+{
+  "title": "Eval: vercel-models",
+  "run at": "2026-11-17T07:23:49+00:00",
+  "repeats": 3,
+  "models": {
+    "triage": [
+      "openai/gpt-5-mini via vercel",
+      "openai/gpt-oss-120b via vercel"
+    ],
+    "vote": [
+      "alibaba/qwen3.7-flash via vercel",
+      "zai/glm-4.7-flash via vercel",
+      "meta/llama-4-scout via vercel"
+    ],
+    "audit": [
+      "openai/gpt-oss-safeguard-20b via vercel",
+      "openai/gpt-oss-safeguard-120b via vercel"
+    ],
+    "draft": [
+      "openai/gpt-oss-120b via vercel",
+      "openai/gpt-5-mini via vercel"
+    ],
+    "verify": [
+      "deepseek/deepseek-v3.1 via vercel",
+      "meta/llama-4-scout via vercel",
+      "alibaba/qwen3.7-flash via vercel"
+    ],
+    "judge": [
+      "alibaba/qwen3.7-flash via vercel",
+      "meta/llama-4-scout via vercel"
+    ]
+  },
+  "prompt versions": {
+    "triage": "34c30d663312",
+    "audit": "e8a022d4ad8b",
+    "draft": "f15efb076eb8",
+    "verify": "c25458510939"
+  },
+  "faq": "a89d6b41c232",
+  "prices as of": "2026-11-17",
+  "compared with fix2-plan-questions": "Before -> after on 10 examples: fixed ['E07'], broken ['E08', 'E10']; exact McNemar p = 1.000",
+  "summary": {
+    "action": "14/30",
+    "category": "24/30",
+    "priority": "22/30",
+    "language": "26/30",
+    "all_fields_correct": "13/30",
+    "unsafe": 0,
+    "needless_handoffs": 12,
+    "errors": 4,
+    "failed_model_calls": 4,
+    "consistent_examples": "2/10",
+    "good_replies": "5/5",
+    "cost_per_100_tickets_usd": 0.1612,
+    "tokens_per_ticket": 5006
+  },
+  "per_example": {
+    "E01": false,
+    "E02": false,
+    "E03": true,
+    "E04": true,
+    "E05": false,
+    "E06": true,
+    "E07": true,
+    "E08": false,
+    "E09": true,
+    "E10": false
+  },
+  "attempts": [
+    {
+      "example": "E01",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "question",
+        "priority": "P4",
+        "reason": "Handed to a human: the draft failed checks G4.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · question · en · Basis]\nWhy a human: the draft failed checks G4.\nCustomer says (unverified): The customer reports the app crashes immediately on their iPhone 8 running iOS 15 while other staff are fine.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "CHECKS"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.0022,
+      "tokens": 7661,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E02",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "Handed to a human: the safety audit matched client rule R3.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · question · nl · Plus]\nWhy a human: the safety audit matched client rule R3.\nCustomer says (unverified): Customer asks us to put their new VAT number on their invoices (i.e., update company VAT number for future invoices).\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "AUDIT"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001502,
+      "tokens": 6274,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E03",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Refund or disputed charge: the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Basis]\nWhy a human: R1 refund or disputed charge.\nCustomer says (unverified): The customer says they were closed in August for renovations and asks whether they can get that month's payment refunded.\nNext step: Check the invoices and payments on the account, then decide on a refund or correction.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R1"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001138,
+      "tokens": 1829,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E04",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "This is a how-to question about swapping shifts, which is answered by help-centre entry F03. It's low urgency (P4) and can be handled by an automated reply with the instructions.",
+        "draft_reply": "Hoi,\n\nOm een dienst te ruilen open je de dienst in de app en tik je op \"Ruil aanbieden\". Collega’s met dezelfde functie kunnen de ruil accepteren. De manager moet de ruil vervolgens goedkeuren via Rooster → Verzoeken. Standaard staat manager‑goedkeuring aan; je kunt dit uitzetten via Instellingen → Rooster.",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.001987,
+      "tokens": 7489,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "verify=deepseek/deepseek-v3.1",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E05",
+      "label": {
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · feature_request · nl · Plus]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer requests a Google Calendar integration to sync shifts to Google Calendar.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 0.33
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001388,
+      "tokens": 6050,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E06",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: This is a bug because publishing fails and staff are blocked from seeing the rota. Priority P2 because the customer's staff are affected. The help centre does not cover this specific error, so it needs human support to investigate and resolve.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Plus]\nWhy a human: This is a bug because publishing fails and staff are blocked from seeing the rota. Priority P2 because the customer's staff are affected. The help centre does not cover this specific error, so it needs human support to investigate and resolve.\nCustomer says (unverified): The manager cannot publish the rota: clicking Publish returns 'Something went wrong' and next week's rota is not visible to staff.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001053,
+      "tokens": 1794,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E07",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "reason": "Handed to a human: the verifier found claims the help centre does not support.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · billing · nl · Basis]\nWhy a human: the verifier found claims the help centre does not support.\nCustomer says (unverified): Customer asks how much the Plus plan costs for 25 employees per month.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "VERIFY"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.002101,
+      "tokens": 7340,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "verify=deepseek/deepseek-v3.1",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 1,
+      "error": null
+    },
+    {
+      "example": "E08",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "action": "close"
+      },
+      "decision": null,
+      "codes": [],
+      "judged_good_reply": null,
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "models": [],
+      "failed_calls": 0,
+      "error": "every model for vote failed"
+    },
+    {
+      "example": "E09",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "other",
+        "priority": "P1",
+        "reason": "Personal data request (GDPR, AVG in Dutch): the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P1 · other · nl · Plus]\nWhy a human: R3 personal data request (GDPR, AVG in Dutch).\nCustomer says (unverified): The customer requests access to all personal data you hold about them under the GDPR.\nNext step: Handle it as a GDPR (AVG) request: verify the requester and answer within the legal deadline.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R3"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001195,
+      "tokens": 1861,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E10",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": null,
+      "codes": [],
+      "judged_good_reply": null,
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "models": [],
+      "failed_calls": 0,
+      "error": "every model for vote failed"
+    },
+    {
+      "example": "E01",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P3 · bug · en · Basis]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The user reports the app crashes immediately on their iPhone 8 running iOS 15 while other staff are fine.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 0.67
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001692,
+      "tokens": 6827,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E02",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Plus]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer asks us to put their new VAT number on future invoices.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 0.67
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001993,
+      "tokens": 6458,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E03",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Refund or disputed charge: the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Basis]\nWhy a human: R1 refund or disputed charge.\nCustomer says (unverified): The customer asks whether they can get a refund for August because their business was closed for renovations that month.\nNext step: Check the invoices and payments on the account, then decide on a refund or correction.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R1"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001067,
+      "tokens": 1799,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E04",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": null,
+      "codes": [],
+      "judged_good_reply": null,
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "models": [],
+      "failed_calls": 0,
+      "error": "every model for vote failed"
+    },
+    {
+      "example": "E05",
+      "label": {
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · feature_request · nl · Plus]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer asks for a Google Calendar integration to sync shifts to Google Calendar.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 0.33
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001663,
+      "tokens": 6198,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E06",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: This is a functional bug preventing the rota from being published and making schedules invisible to staff, impacting operations (so P2). The help centre does not cover this specific error, and it likely requires investigation by support, so hand off to a human agent.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Plus]\nWhy a human: This is a functional bug preventing the rota from being published and making schedules invisible to staff, impacting operations (so P2). The help centre does not cover this specific error, and it likely requires investigation by support, so hand off to a human agent.\nCustomer says (unverified): The manager cannot publish the rota; clicking Publish shows the error 'Something went wrong' and next week's rota is not visible to staff.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000963,
+      "tokens": 1752,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E07",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "reason": "This is a pricing question answered by the help centre (F05). It is not a contract change or cancellation, so we can reply. Priority is low (informational).",
+        "draft_reply": "Hoi,\n\nDe Plus‑plan kost €6 per actieve medewerker per maand, exclusief btw. Je kunt op elk moment upgraden via Instellingen → Abonnement; de nieuwe prijs geldt vanaf de volgende factuur.\n\nMet vriendelijke groet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.002323,
+      "tokens": 8106,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "verify=deepseek/deepseek-v3.1",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E08",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "action": "close"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about closing it.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · other · nl · Basis]\nWhy a human: the models disagree about closing it.\nCustomer says (unverified): The message is an unsolicited Dutch-language investment/spam offer promoting a cryptocurrency fund promising to double money in 7 days.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001151,
+      "tokens": 5931,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E09",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "reason": "Personal data request (GDPR, AVG in Dutch): the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · other · nl · Plus]\nWhy a human: R3 personal data request (GDPR, AVG in Dutch).\nCustomer says (unverified): The customer requests access to all personal data the company holds about them under GDPR.\nNext step: Handle it as a GDPR (AVG) request: verify the requester and answer within the legal deadline.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R3"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000714,
+      "tokens": 1833,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-oss-120b"
+      ],
+      "failed_calls": 1,
+      "error": null
+    },
+    {
+      "example": "E10",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": null,
+      "codes": [],
+      "judged_good_reply": null,
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "models": [],
+      "failed_calls": 0,
+      "error": "every model for vote failed"
+    },
+    {
+      "example": "E01",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P3",
+        "reason": "Handed to a human: the draft failed checks G4.",
+        "draft_reply": null,
+        "handoff_note": "[P3 · bug · en · Basis]\nWhy a human: the draft failed checks G4.\nCustomer says (unverified): The customer reports the mobile app crashes immediately on their iPhone 8 running iOS 15 while other staff can use it fine.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "CHECKS"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.002202,
+      "tokens": 7572,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 1,
+      "error": null
+    },
+    {
+      "example": "E02",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Handed to a human: This is a billing/contract change (update VAT for future invoices). The help centre points them to Settings → Company details (F06), but contract changes must be handled by a human, so escalate (handoff) with P2 priority.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Plus]\nWhy a human: This is a billing/contract change (update VAT for future invoices). The help centre points them to Settings → Company details (F06), but contract changes must be handled by a human, so escalate (handoff) with P2 priority.\nCustomer says (unverified): The customer says their VAT number has changed and asks us to update it so the new number appears on their invoices.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001145,
+      "tokens": 1839,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E03",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P2",
+        "reason": "Refund or disputed charge: the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · billing · nl · Basis]\nWhy a human: R1 refund or disputed charge.\nCustomer says (unverified): The customer was closed for renovations in August and is requesting a refund for that month.\nNext step: Check the invoices and payments on the account, then decide on a refund or correction.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R1"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000986,
+      "tokens": 1761,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E04",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "This is a how-to question about swapping shifts, which is covered by help article F03. It's low urgency (P4) and can be answered directly from the help centre, so reply.",
+        "draft_reply": "Hoi,\n\nOm een dienst te ruilen open je de dienst in de app en tik je op \"Ruil aanbieden\". Collega’s met dezelfde functie kunnen de ruil accepteren. De manager moet de ruil vervolgens goedkeuren via Rooster → Verzoeken. Standaard staat manager‑goedkeuring aan; je kunt dit uitzetten onder Instellingen → Rooster.\n\nGroet,\nRoosterly support team",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.002063,
+      "tokens": 7546,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "verify=deepseek/deepseek-v3.1",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E05",
+      "label": {
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "feature_request",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about the answer.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · feature_request · nl · Plus]\nWhy a human: the models disagree about the answer.\nCustomer says (unverified): The customer requests a Google Calendar integration to export or sync shifts to Google Calendar.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 0.33
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001477,
+      "tokens": 6137,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E06",
+      "label": {
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "en",
+        "category": "bug",
+        "priority": "P2",
+        "reason": "Handed to a human: This is a bug because publishing fails and prevents staff from seeing the rota; it's affecting this customer (blocking their workflow) and the help centre doesn't cover this error, so a human support agent should investigate.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · bug · en · Plus]\nWhy a human: This is a bug because publishing fails and prevents staff from seeing the rota; it's affecting this customer (blocking their workflow) and the help centre doesn't cover this error, so a human support agent should investigate.\nCustomer says (unverified): The manager cannot publish the rota: clicking Publish shows 'Something went wrong' and next week's rota isn't visible to staff.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "MODEL"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001311,
+      "tokens": 1926,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E07",
+      "label": {
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "billing",
+        "priority": "P4",
+        "reason": "This is a billing question about pricing; the help centre states Plus costs \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000 per active employee per month, so for 25 employees it's \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000, and prices exclude VAT. Action: reply because the help centre answers this.",
+        "draft_reply": "Hoi,\n\nVoor het Plus-abonnement betaal je €6 per actieve medewerker per maand, exclusief btw. Je kunt dit abonnement op elk moment upgraden via Instellingen → Abonnement; de nieuwe prijs geldt vanaf de volgende factuur.\n\nMet vriendelijke groet,\nHet Roosterly supportteam",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.005136,
+      "tokens": 9524,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "verify=deepseek/deepseek-v3.1",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E08",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "action": "close"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "other",
+        "priority": "P4",
+        "reason": "Handed to a human: the models disagree about closing it.",
+        "draft_reply": null,
+        "handoff_note": "[P4 · other · nl · Basis]\nWhy a human: the models disagree about closing it.\nCustomer says (unverified): The message is an unsolicited investment pitch claiming to double money in seven days.\nNext step: Read the ticket and answer the customer yourself.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "DISAGREE"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.001125,
+      "tokens": 5880,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    },
+    {
+      "example": "E09",
+      "label": {
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "action": "handoff"
+      },
+      "decision": {
+        "action": "handoff",
+        "language": "nl",
+        "category": "other",
+        "priority": "P2",
+        "reason": "Personal data request (GDPR, AVG in Dutch): the client's rules send it to a human.",
+        "draft_reply": null,
+        "handoff_note": "[P2 · other · nl · Plus]\nWhy a human: R3 personal data request (GDPR, AVG in Dutch).\nCustomer says (unverified): The customer requests access to all personal data the company holds about them under GDPR.\nNext step: Handle it as a GDPR (AVG) request: verify the requester and answer within the legal deadline.",
+        "confidence": 1.0
+      },
+      "codes": [
+        "R3"
+      ],
+      "judged_good_reply": null,
+      "cost_usd": 0.000696,
+      "tokens": 1813,
+      "models": [
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-oss-120b"
+      ],
+      "failed_calls": 1,
+      "error": null
+    },
+    {
+      "example": "E10",
+      "label": {
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "action": "reply"
+      },
+      "decision": {
+        "action": "reply",
+        "language": "nl",
+        "category": "question",
+        "priority": "P4",
+        "reason": "This is a simple how-to/question about scheduled maintenance; the help centre directs users to the status page (F11). No urgent impact or contract/security issues, so a normal reply is appropriate.",
+        "draft_reply": "Hoi, voor geplande onderhoud kun je de actuele status bekijken op status.roosterly.nl. Daar vind je zowel lopende storingen als geplande onderhoudsmomenten.",
+        "handoff_note": null,
+        "confidence": 1.0
+      },
+      "codes": [],
+      "judged_good_reply": true,
+      "cost_usd": 0.001652,
+      "tokens": 6959,
+      "models": [
+        "audit=openai/gpt-oss-safeguard-20b",
+        "draft=openai/gpt-oss-120b",
+        "guard=meta-llama/llama-prompt-guard-2-86m",
+        "triage=openai/gpt-5-mini",
+        "verify=deepseek/deepseek-v3.1",
+        "vote=alibaba/qwen3.7-flash",
+        "vote=zai/glm-4.7-flash"
+      ],
+      "failed_calls": 0,
+      "error": null
+    }
+  ]
+}

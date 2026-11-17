@@ -59,12 +59,15 @@ Each labelled example runs three times without posting; gpt-oss-120b judges the 
 | Baseline | 0 | 11 | 19 | 21 | 25 | 30 | 7/7 |
 | Fix 1 | 0 | 13 | 17 | **27** | 24 | 30 | 5/5 |
 | Fix 2 | 0 | 11 | 19 | 27 | 24 | 30 | 7/7 |
+| Vercel models, not kept | 0 | 12 | 14 | 24 | 22 | 26 | 5/5 |
 
 - **Fix 1:** all nine category misses were "question", on billing and GDPR tickets: the prompt never
   defined the categories. Defining them by subject: 21 to 27 of 30 (too few examples to prove it,
   McNemar p = 1.0).
 - **Fix 2:** our rule that a price question is not a contract change was missing from the prompts. Price
   questions now pass the votes; the verifier rightly stops two of three replies that omit the total.
+- **Not kept:** GPT-5-mini and others on Vercel AI Gateway's free credit ($0.16) took 6 instead of
+  10.5 minutes, but weaker voters vetoed correct replies ([results](eval/results/vercel-models.md)).
 - **Cost:** about $0.26 per 100 tickets = reported tokens (about 4,000 a ticket) × list prices of 16
   November per million input/output tokens: gpt-oss-120b $0.35/$0.75, Qwen $0.80/$4.00, Flash-Lite
   $0.30/$2.50, safeguard $0.075/$0.30; the eval files assumed a lower Flash-Lite price ($0.21). Spent: €0.
