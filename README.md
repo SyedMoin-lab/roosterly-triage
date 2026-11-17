@@ -14,10 +14,9 @@ poetry run python -m triage eval                     # the 10 labelled examples,
 poetry run python scripts/check.py                   # ruff, mypy --strict, 348 tests, as in CI
 ```
 
-`run` and `eval` print each step as it happens (`--quiet` hides it); `eval --limit 2 --repeats 1` is a
-quick demo. Final run: `triage reset --yes`, `triage run`, then `triage lock` to refuse later runs. Exit
-code 1 or 3: run again to finish. With Windows Smart App Control: `python -m venv .venv`, then
-`python -m poetry`.
+`run` and `eval` show each step live (`--quiet` hides it; `eval --limit 2` is a quick demo). Final run:
+`triage reset --yes`, `triage run`, then `triage lock` to refuse later runs. Exit code 1 or 3: run
+again to finish. With Windows Smart App Control: `python -m venv .venv`, then `python -m poetry`.
 The scored run on 17 November posted 30 decisions in 10 minutes; its log is
 [logs/20261116T224609Z-7ac058f5.jsonl](logs/20261116T224609Z-7ac058f5.jsonl).
 
@@ -66,9 +65,9 @@ Each labelled example runs three times without posting; gpt-oss-120b judges the 
   McNemar p = 1.0).
 - **Fix 2:** our rule that a price question is not a contract change was missing from the prompts. Price
   questions now pass the votes; the verifier rightly stops two of three replies that omit the total.
-- **Cost:** $0.21 per 100 tickets = reported tokens (about 4,000 a ticket) × list prices of 16 November
-  per million input/output tokens: gpt-oss-120b $0.35/$0.75, Qwen $0.80/$4.00, Flash-Lite $0.10/$0.40
-  (assumed), safeguard $0.075/$0.30. Spent: €0.
+- **Cost:** about $0.26 per 100 tickets = reported tokens (about 4,000 a ticket) × list prices of 16
+  November per million input/output tokens: gpt-oss-120b $0.35/$0.75, Qwen $0.80/$4.00, Flash-Lite
+  $0.30/$2.50, safeguard $0.075/$0.30; the eval files assumed a lower Flash-Lite price ($0.21). Spent: €0.
 
 ## What I would improve
 

@@ -68,8 +68,8 @@ FLASH_LITE = ModelSpec(
     max_tokens=2000,
     tokens_per_minute=200_000,
     requests_per_minute=14,
-    usd_per_million_input=0.10,
-    usd_per_million_output=0.40,
+    usd_per_million_input=0.30,
+    usd_per_million_output=2.50,
 )
 SAFEGUARD = ModelSpec(
     Provider.GROQ,
