@@ -178,7 +178,7 @@ template. The model-facing attacks are tested live in Phases 4 and 5.
 
 | ID | Scenario | Expected | Status |
 |---|---|---|---|
-| EV-01 | Judge model family | Differs from both the drafter's and the verifier's | ✅ gpt-oss judges, Qwen drafts, Flash-Lite verifies; not enforced after a drafting fallback |
+| EV-01 | Judge model family | Differs from both the drafter's and the verifier's | ✅ gpt-oss judges, Qwen drafts, Flash-Lite verifies (`tests/llm/test_roster.py` checks it, with the vote and verifier families); not enforced after a drafting fallback |
 | EV-02 | Judge on 10 deliberately broken and 10 clean drafts | Catches the broken ones; report its accuracy | Planned |
 | EV-03 | Labels | Only from `GET /examples` or written by construction | ✅ |
 | EV-04 | Small sample | Results reported with Wilson 95 % intervals | ✅ |

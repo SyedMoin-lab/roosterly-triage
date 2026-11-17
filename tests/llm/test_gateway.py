@@ -148,3 +148,14 @@ async def test_a_model_without_a_usable_answer_is_reported(
         )
     assert answer.spec is QWEN
     assert caplog.messages.count("gpt-oss-120b gave no usable triage answer (no response)") == 2
+
+
+async def test_a_malformed_answer_a_provider_let_through_goes_to_the_next_model() -> None:
+    models = ScriptedModels(errors={GPT_OSS.model: ValueError("faq_id: field required")})
+    models.respond(TriageProposal, lambda spec: proposal())
+    calls: list[CallRecord] = []
+    answer = await models.gateway().structured(
+        "triage", TriageProposal, MESSAGES, (GPT_OSS, QWEN), calls
+    )
+    assert answer.spec is QWEN
+    assert [call.outcome for call in calls] == ["unparseable", "unparseable", "ok"]

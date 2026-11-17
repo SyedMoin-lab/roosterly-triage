@@ -26,6 +26,7 @@ class ScriptedModels:
     responders: dict[str, Responder] = field(default_factory=dict)
     down: set[str] = field(default_factory=set)
     hiccups: Counter[str] = field(default_factory=Counter)
+    errors: dict[str, Exception] = field(default_factory=dict)  # model name -> error it raises
     injection_probability: float = 0.001
     calls: list[tuple[str, str]] = field(default_factory=list)
 
@@ -43,6 +44,8 @@ class ScriptedModels:
         async def respond(messages: object) -> object:
             name = schema.__name__ if schema else "Guard"
             self.calls.append((spec.model, name))
+            if spec.model in self.errors:
+                raise self.errors[spec.model]
             if spec.model in self.down or self.hiccups[spec.model] > 0:
                 self.hiccups[spec.model] -= 1
                 raise openai.APIConnectionError(request=httpx2.Request("POST", "https://test"))

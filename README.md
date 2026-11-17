@@ -11,7 +11,7 @@ docker compose up -d --wait db                       # Postgres 18 + pgvector
 poetry install && cp .env.example .env               # then fill in the keys
 poetry run python -m triage run --dry-run --limit 3  # decide three tickets, post nothing
 poetry run python -m triage eval                     # the 10 labelled examples, 3 runs each
-poetry run python scripts/check.py                   # ruff, mypy --strict, 348 tests, as in CI
+poetry run python scripts/check.py                   # ruff, mypy --strict, 356 tests, as in CI
 ```
 
 `run` and `eval` show each step live (`--quiet` hides it; `eval --limit 2` is a quick demo). Final run:

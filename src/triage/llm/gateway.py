@@ -27,6 +27,13 @@ GUARD_SEGMENT_CHARS = 1500
 GUARD_MAX_SEGMENTS = 4
 WAIT_WORTH_REPORTING_SECONDS = 1.0
 _PROVIDER_ERRORS = (openai.APIError, httpx.HTTPError)
+# The OpenAI SDK parses structured output itself and raises when a provider lets a malformed
+# answer through (pydantic's ValidationError is a ValueError) or stops at the token limit.
+_UNUSABLE_ANSWERS = (
+    ValueError,
+    openai.LengthFinishReasonError,
+    openai.ContentFilterFinishReasonError,
+)
 _OUTCOMES = {
     "unparseable": "broken JSON",
     "rate_limited": "rate limited",
@@ -119,6 +126,11 @@ class ModelGateway:
             result = await self._factory(spec, schema).ainvoke(list(messages))
         except _PROVIDER_ERRORS as error:
             calls.append(self._failed_call(role, spec, error, started))
+            return None
+        except _UNUSABLE_ANSWERS:
+            calls.append(
+                CallRecord(role, spec.model, "unparseable", 0, 0, _elapsed_ms(started), 0.0)
+            )
             return None
         raw = result.get("raw") if isinstance(result, dict) else None
         parsed = result.get("parsed") if isinstance(result, dict) else None
