@@ -147,13 +147,24 @@ async def test_an_empty_ticket_is_closed_without_any_model_call(
     assert models.calls == []
 
 
-async def test_an_automatic_reply_is_closed_without_any_model_call(
+async def test_an_automatic_reply_is_closed_when_every_model_agrees(
     pipeline: Pipeline, models: ScriptedModels
 ) -> None:
+    models.respond(TriageProposal, lambda spec: proposal(Action.CLOSE, faq_ids=()))
     body = "Ik ben afwezig tot en met maandag. Dit is een automatisch antwoord."
-    decision = (await pipeline.run(ticket(body, subject="Afwezig")))["decision"]
-    assert decision.action is Action.CLOSE
-    assert models.calls == []
+    state = await pipeline.run(ticket(body, subject="Afwezig"))
+    assert state["decision"].action is Action.CLOSE
+    assert state["route"].codes == ("AUTO",)
+    assert models.called()["TriageProposal"] == 3
+
+
+async def test_a_question_about_automatic_messages_is_never_closed_by_its_wording(
+    pipeline: Pipeline, models: ScriptedModels
+) -> None:
+    body = "Sturen jullie medewerkers een automatisch bericht als ik een ruil goedkeur?"
+    decision = (await pipeline.run(ticket(body)))["decision"]
+    assert decision.action is not Action.CLOSE
+    assert models.calls
 
 
 async def test_spam_is_closed_only_when_every_model_agrees(

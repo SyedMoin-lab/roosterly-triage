@@ -5,10 +5,11 @@ from triage.domain import Action, Category, Language, Priority
 from triage.knowledge.faq import Faq
 from triage.pipeline.prepare import Prepared
 from triage.pipeline.schemas import NO_ENTRY, SafetyAudit, TriageProposal
+from triage.safety.rules import RULE_FLOORS
 
 INJECTION_THRESHOLD = 0.5
-# Ticket text is data: a ticket that gives the agent instructions cannot set its own priority.
-# The triage model has read those instructions, so the code sets it (or a client rule's floor).
+# Ticket text is data: a ticket that orders its own priority does not get it. The triage model
+# has read that order, so the code sets the priority instead (or a client rule's floor).
 INJECTION_PRIORITY = Priority.P2
 INJECTION_REASON = "the ticket contains instructions aimed at the agent"
 PLUS_ONLY_ENTRIES = frozenset({"F04", "F07"})
@@ -67,19 +68,21 @@ def decide_route(
         Action.HANDOFF,
         language,
         triage.category,
-        more_urgent(INJECTION_PRIORITY if suspicious else triage.priority, *rule_floor),
+        more_urgent(
+            INJECTION_PRIORITY if prepared.orders_priority else triage.priority, *rule_floor
+        ),
         codes=rule_codes,
     )
     if suspicious:
         return base.escalated(INJECTION_REASON, "INJECTION")
     if prepared.hits:
         return base
-    if audit is not None and audit.violation:
-        return base.escalated(f"the safety audit matched client rule {audit.rule}", "AUDIT")
-    if prepared.is_automatic_reply:
-        return replace(base, action=Action.CLOSE, reasons=("an automatic reply",), codes=("AUTO",))
+    if audit is not None and (audit.violation or audit.rule != "none"):
+        floor = RULE_FLOORS.get(audit.rule)
+        audited = replace(base, priority=more_urgent(base.priority, floor)) if floor else base
+        return audited.escalated(f"the safety audit matched client rule {audit.rule}", "AUDIT")
     if triage.action is Action.CLOSE:
-        return _close_if_unanimous(base, votes)
+        return _close_if_unanimous(base, votes, automatic=prepared.is_automatic_reply)
     if triage.action is Action.REPLY:
         return _reply_if_confirmed(base, triage, votes, faq, prepared.ticket.customer_plan)
     return base.escalated(triage.reason, "MODEL")
@@ -103,19 +106,26 @@ def _without_a_model(
             ("EMPTY",),
         )
     return Route(
-        Action.CLOSE, language, Category.OTHER, Priority.P4, (), ("an automatic reply",), ("AUTO",)
+        Action.HANDOFF,
+        language,
+        Category.OTHER,
+        Priority.P3,
+        (),
+        ("no model could read the ticket",),
+        ("UNCHECKED",),
     )
 
 
-def _close_if_unanimous(base: Route, votes: Sequence[TriageProposal]) -> Route:
+def _close_if_unanimous(base: Route, votes: Sequence[TriageProposal], *, automatic: bool) -> Route:
+    """A close is final: it needs the triage model and both votes, never a keyword alone."""
     if votes and all(vote.action is Action.CLOSE for vote in votes):
         return replace(
             base,
             action=Action.CLOSE,
             category=Category.OTHER,
             priority=Priority.P4,
-            reasons=("spam",),
-            codes=("SPAM",),
+            reasons=("an automatic reply",) if automatic else ("spam",),
+            codes=("AUTO",) if automatic else ("SPAM",),
         )
     return base.escalated("the models disagree about closing it", "DISAGREE")
 

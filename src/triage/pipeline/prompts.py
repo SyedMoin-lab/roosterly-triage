@@ -38,7 +38,8 @@ workaround. P4 no urgency: how-to questions, ideas, cosmetic issues.
 - questions: every question or request in the ticket, written in English, each with the id of \
 the help-centre entry that fully answers it, or "none".
 - action: "reply" only if every question has an entry and no client rule applies; "close" only \
-for spam or an empty ticket; otherwise "handoff". The category does not decide the action: a bug, \
+for spam, an empty ticket or an automatic reply that asks nothing; otherwise "handoff". \
+The category does not decide the action: a bug, \
 a billing question or an idea gets a reply when an entry answers it.
 - evidence: short quotes copied word for word from the entries you cite.
 - english_summary: one or two English sentences on what the customer wants, without names, \

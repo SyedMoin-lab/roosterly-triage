@@ -118,8 +118,7 @@ class Pipeline:
 
     def _after_prepare(self, state: State) -> str:
         prepared = state["prepared"]
-        skip_models = prepared.is_empty or (prepared.is_automatic_reply and not prepared.hits)
-        return "policy" if skip_models else "screen"
+        return "policy" if prepared.is_empty else "screen"
 
     async def _screen(self, state: State) -> dict[str, Any]:
         calls: list[CallRecord] = []

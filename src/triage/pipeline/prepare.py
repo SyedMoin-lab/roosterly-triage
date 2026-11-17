@@ -5,7 +5,7 @@ from triage.domain import Language, Ticket
 from triage.knowledge.faq import Faq
 from triage.language import detect_language
 from triage.safety.redaction import redact
-from triage.safety.rules import RuleHit, find_injection, find_rule_hits
+from triage.safety.rules import RuleHit, find_injection, find_rule_hits, orders_priority
 from triage.safety.text import clean, fold
 
 _AUTOMATIC_REPLY = re.compile(
@@ -29,6 +29,7 @@ class Prepared:
     injection: str | None
     is_empty: bool
     is_automatic_reply: bool
+    orders_priority: bool = False
 
     @property
     def text(self) -> str:
@@ -52,4 +53,5 @@ def prepare(ticket: Ticket, faq: Faq) -> Prepared:
         injection=find_injection(folded),
         is_empty=not any(char.isalpha() for char in combined),
         is_automatic_reply=bool(_AUTOMATIC_REPLY.search(folded)),
+        orders_priority=orders_priority(folded),
     )

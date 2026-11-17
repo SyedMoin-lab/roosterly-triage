@@ -3,7 +3,9 @@ from dataclasses import dataclass
 
 from triage.domain import Priority
 
-_NEAR = 80
+# A staff word only cancels a trigger when it stands before or inside it, as the one who
+# resigns ('een medewerker heeft opgezegd'), not after it ('opzeggen, te weinig medewerkers').
+_STAFF_BEFORE = 40
 _GAP = r"(?:\s+\S+){0,6}?\s+"
 _SHORT_GAP = r"(?:\s+\S+){0,4}?\s+"
 _PLAN = r"(?:plus|basis)"
@@ -28,7 +30,7 @@ class Trigger:
     def find(self, folded: str) -> str | None:
         for match in self.pattern.finditer(folded):
             if self.unless_near is not None:
-                window = folded[max(0, match.start() - _NEAR) : match.end() + _NEAR]
+                window = folded[max(0, match.start() - _STAFF_BEFORE) : match.end()]
                 if self.unless_near.search(window):
                     continue
             return match.group(0)
@@ -209,8 +211,19 @@ LEAVING = Rule(
 )
 
 RULES = (REFUND, CANCELLATION, PERSONAL_DATA, SECURITY, LEGAL, LEAVING)
+RULE_FLOORS = {rule.code: rule.minimum_priority for rule in RULES}
 
-_INJECTION = tuple(
+# Orders to set the ticket's priority, which only the agent decides.
+_PRIORITY_ORDERS = tuple(
+    re.compile(pattern)
+    for pattern in (
+        r"\b(?:zet|stel|set|change|wijzig|verander|setze)\b(?:\s+\S+){0,3}?\s+"
+        r"(?:prioriteit|priority|prioritat|prio)\b",
+        r"\b(?:prioriteit|priority|prioritat)\s+(?:op|naar|to|auf|=|:)\s*p[1-4]\b",
+    )
+)
+
+_INJECTION = _PRIORITY_ORDERS + tuple(
     re.compile(pattern)
     for pattern in (
         r"\b(?:ignore|disregard|forget)\b(?:\s+\S+){0,3}?\s+(?:previous|prior|above|earlier|all)"
@@ -220,7 +233,9 @@ _INJECTION = tuple(
         r"\b(?:ignoriere|vergiss)\w*\b(?:\s+\S+){0,3}?\s+(?:vorherigen|alle|obigen)\b"
         r"(?:\s+\S+){0,2}?\s+(?:anweisungen|regeln)\b",
         r"\b(?:system\s*prompt|systeemprompt|developer\s+mode|jailbreak)\b",
-        r"\b(?:you\s+are\s+now|je\s+bent\s+nu|du\s+bist\s+jetzt)\b",
+        # Role play ('you are now an admin'), not app messages ('je bent nu uitgelogd').
+        r"\b(?:you\s+are\s+now|je\s+bent\s+nu|du\s+bist\s+jetzt)\s+"
+        r"(?:a|an|the|my|een|de|het|mijn|ein|eine|der|die|das|mein)\b",
         r"(?:^|\s)(?:system|assistant)\s*:\s",
         r"<\s*/?\s*(?:system|assistant|instructions?|prompt)\s*>",
         r"/practice/reset|/tickets/\w+/(?:reply|handoff|close)",
@@ -229,10 +244,7 @@ _INJECTION = tuple(
         r"\b(?:assistant|assistent)[- ]?(?:model|bot)\b",
         r"\b(?:voor|aan|for|to|fur|an)\s+(?:de\s+|het\s+|the\s+|die\s+|den\s+|dem\s+)?"
         r"(?:ai|ki|chatbot|bot|taalmodel|language\s+model|llm)\b",
-        # Orders to set the triage outcome, which only the agent decides.
-        r"\b(?:zet|stel|set|change|wijzig|verander|setze)\b(?:\s+\S+){0,3}?\s+"
-        r"(?:prioriteit|priority|prioritat|prio)\b",
-        r"\b(?:prioriteit|priority|prioritat)\s+(?:op|naar|to|auf|=|:)\s*p[1-4]\b",
+        # Orders to close the ticket, which only the agent decides.
         r"\b(?:markeer|mark|markiere)\b(?:\s+\S+){0,3}?\s+(?:als|as)\s+"
         r"(?:opgelost|resolved|gesloten|closed|erledigt|geschlossen|gelost)\b",
     )
@@ -248,6 +260,10 @@ def find_rule_hits(folded: str) -> list[RuleHit]:
                 hits.append(RuleHit(rule, evidence))
                 break
     return hits
+
+
+def orders_priority(folded: str) -> bool:
+    return any(pattern.search(folded) for pattern in _PRIORITY_ORDERS)
 
 
 def find_injection(folded: str) -> str | None:

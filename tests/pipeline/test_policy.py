@@ -10,7 +10,11 @@ from triage.safety.rules import CANCELLATION, LEGAL, REFUND, RuleHit
 
 
 def prepared(
-    *, hits: tuple[RuleHit, ...] = (), injection: str | None = None, plan: str = "Basis"
+    *,
+    hits: tuple[RuleHit, ...] = (),
+    injection: str | None = None,
+    plan: str = "Basis",
+    orders_priority: bool = False,
 ) -> Prepared:
     return Prepared(
         ticket=ticket("tekst", plan=plan),
@@ -24,6 +28,7 @@ def prepared(
         injection=injection,
         is_empty=False,
         is_automatic_reply=False,
+        orders_priority=orders_priority,
     )
 
 
@@ -103,11 +108,8 @@ def test_the_policy_can_only_escalate(
         assert route.action is Action.HANDOFF
     for hit in hits:
         assert route.priority.value <= hit.rule.minimum_priority.value
-    if route.action is not Action.CLOSE and not suspicious:
+    if route.action is not Action.CLOSE:
         assert route.priority.value <= triage_priority.value
-    if suspicious:
-        floors = (hit.rule.minimum_priority for hit in hits)
-        assert route.priority is more_urgent(Priority.P2, *floors)
     if route.action is Action.REPLY:
         assert triage_action is Action.REPLY
         assert covered
@@ -120,9 +122,14 @@ def test_the_policy_can_only_escalate(
         assert all(vote.action is Action.CLOSE for vote in votes)
 
 
-def test_a_ticket_that_instructs_the_agent_cannot_set_its_own_priority() -> None:
+def test_a_ticket_that_orders_its_own_priority_does_not_get_it() -> None:
     route = decide_route(
-        prepared(injection="ai-assistent"), proposal(priority=Priority.P1), [], None, None, FAQ
+        prepared(injection="prioriteit op p1", orders_priority=True),
+        proposal(priority=Priority.P1),
+        [],
+        None,
+        None,
+        FAQ,
     )
     assert (route.action, route.priority, route.codes) == (
         Action.HANDOFF,
@@ -142,3 +149,26 @@ def test_a_client_rule_still_raises_the_priority_of_an_instructing_ticket() -> N
         FAQ,
     )
     assert (route.priority, route.codes) == (Priority.P1, ("R5", "INJECTION"))
+
+
+def test_an_urgent_ticket_that_addresses_an_ai_keeps_its_urgency() -> None:
+    route = decide_route(
+        prepared(injection="ai-assistent"), proposal(priority=Priority.P1), [], None, None, FAQ
+    )
+    assert (route.action, route.priority, route.codes) == (
+        Action.HANDOFF,
+        Priority.P1,
+        ("INJECTION",),
+    )
+
+
+def test_a_client_rule_found_by_the_audit_sets_the_minimum_priority() -> None:
+    audit = SafetyAudit(violation=True, rule="R3", rationale="Asks to delete personal data.")
+    route = decide_route(prepared(), proposal(priority=Priority.P4), [], audit, None, FAQ)
+    assert (route.action, route.priority, route.codes) == (Action.HANDOFF, Priority.P2, ("AUDIT",))
+
+
+def test_an_audit_that_names_a_rule_is_never_treated_as_clean() -> None:
+    audit = SafetyAudit(violation=False, rule="R1", rationale="Mentions a refund.")
+    route = decide_route(prepared(), proposal(), [], audit, None, FAQ)
+    assert route.codes == ("AUDIT",)

@@ -63,3 +63,37 @@ def test_redaction_is_idempotent_and_leaves_no_card_digits(prefix: str, suffix: 
     once = redact(f"{prefix}{VALID_CARD}{suffix}")
     assert redact(once.text).text == once.text
     assert not re.search(r"\d{4}", once.text)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "Mijn IBAN is NL91ABNA0417164300 en ik wil het geld graag terug",
+            "Mijn IBAN is [IBAN] en ik wil het geld graag terug",
+        ),
+        (
+            "Rekening: NL91 ABNA 0417 1643 00 graag deze gebruiken",
+            "Rekening: [IBAN] graag deze gebruiken",
+        ),
+        ("iban nl91abna0417164300 klopt nog", "iban [IBAN] klopt nog"),
+        (
+            "Oud NL91ABNA0417164300 of nieuw BE68539007547034, welke?",
+            "Oud [IBAN] of nieuw [IBAN], welke?",
+        ),
+        ("Kaart 4111 1111 1111 1111 123 is afgeschreven", "Kaart [CARD] 123 is afgeschreven"),
+    ],
+)
+def test_a_number_is_hidden_whatever_follows_it(text: str, expected: str) -> None:
+    assert redact(text).text == expected
+
+
+def test_a_cards_security_code_and_expiry_date_are_hidden_next_to_their_label() -> None:
+    redaction = redact("Nieuwe kaart, geldig tot 09/28, CVC 123. Groet")
+    assert redaction.text == "Nieuwe kaart, geldig tot [EXPIRY], CVC [CVC]. Groet"
+    assert redaction.has_payment_details
+
+
+def test_ordinary_numbers_and_dates_stay_readable() -> None:
+    text = "Ons team heeft 123 medewerkers en de dienst start op 09/12 om 14:00."
+    assert redact(text).text == text
