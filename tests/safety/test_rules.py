@@ -55,15 +55,15 @@ def test_each_rule_fires_in_dutch_english_and_german(text: str, code: str) -> No
 @pytest.mark.parametrize(
     "text",
     [
-        "Hoe voeg ik een nieuwe medewerker toe?",
-        "Ik ben mijn wachtwoord vergeten.",
+        "Hoe zet ik een nieuwe collega in het systeem?",
+        "Mijn wachtwoord is kwijt.",
         "Een medewerker wil opzeggen, hoe haal ik hem uit het rooster?",
         "Onze medewerker heeft zijn contract opgezegd.",
         "Hoeveel contracturen kan ik invullen?",
         "Ik wil een dienst annuleren voor morgen.",
         "Wat is het verschil tussen Basis en Plus?",
         "Is de koppeling met Nmbrs onderdeel van Plus?",
-        "Waar vind ik mijn facturen?",
+        "Waar staan onze facturen in de app?",
         "Waar worden onze gegevens opgeslagen?",
         "Hoe exporteer ik alle gegevens naar AFAS?",
         "Aan deze e-mail kunnen geen rechten worden ontleend. "

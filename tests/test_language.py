@@ -7,9 +7,9 @@ from triage.language import detect_language
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("Hoe voeg ik een nieuwe medewerker toe aan ons rooster?", Language.DUTCH),
-        ("How do I add a new employee to our rota?", Language.ENGLISH),
-        ("Wie füge ich einen neuen Mitarbeiter zu unserem Dienstplan hinzu?", Language.GERMAN),
+        ("Hoe kan ik een nieuwe collega aan ons team toevoegen?", Language.DUTCH),
+        ("How can I add a new colleague to our team?", Language.ENGLISH),
+        ("Wie kann ich einen neuen Kollegen zu unserem Team hinzufügen?", Language.GERMAN),
     ],
 )
 def test_each_supported_language_is_detected(text: str, expected: Language) -> None:

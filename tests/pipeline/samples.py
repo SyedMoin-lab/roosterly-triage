@@ -13,7 +13,7 @@ from triage.pipeline.schemas import (
 )
 
 FAQ = load_faq(Path(__file__).resolve().parents[2] / "data" / "faq.md")
-QUESTION = "Hoe voeg ik een nieuwe medewerker toe aan ons rooster?"
+QUESTION = "Hoe kan ik een nieuwe collega aan ons team toevoegen?"
 REFUND = "We waren in augustus dicht. Kunnen we het abonnement van die maand terugkrijgen?"
 PAYROLL = "Kan ik de goedgekeurde uren exporteren naar Nmbrs?"
 

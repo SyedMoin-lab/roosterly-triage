@@ -48,7 +48,7 @@ async def test_the_index_embeds_each_entry_once_and_again_only_when_it_changes(
 async def test_hybrid_search_finds_the_entry_a_dutch_ticket_is_about(journal: Journal) -> None:
     index = FaqIndex(journal.pool, WordHashEmbedder(), FAQ)
     await index.sync()
-    top = await index.search("Ik ben mijn wachtwoord vergeten en kan niet inloggen", Language.DUTCH)
+    top = await index.search("Wachtwoord kwijt, hoe kom ik weer in mijn account?", Language.DUTCH)
     assert top[0] == "F01"
     assert len(top) <= 3
 

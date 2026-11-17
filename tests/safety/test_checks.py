@@ -8,7 +8,7 @@ from triage.knowledge.faq import load_faq
 from triage.safety.checks import check_draft
 
 FAQ = load_faq(Path(__file__).resolve().parents[2] / "data" / "faq.md")
-TICKET = "Hoi, ik ben mijn wachtwoord vergeten en kan niet meer inloggen. Groet, Anouk"
+TICKET = "Goedemorgen, mijn wachtwoord werkt niet meer en ik kom de app niet in. Groet, Anouk"
 EVIDENCE = ("The reset link is valid for 60 minutes.",)
 CLEAN_DRAFT = (
     "Hoi Anouk,\n\n"
@@ -111,7 +111,7 @@ def test_a_menu_path_followed_by_normal_words_is_accepted() -> None:
         draft,
         cited_ids=("F02",),
         evidence=("Managers go to Team → Medewerker toevoegen (Add employee)",),
-        ticket_text="Hoe voeg ik een nieuwe medewerker toe aan ons rooster?",
+        ticket_text="Hoe kan ik een nieuwe collega aan ons team toevoegen?",
     )
     assert failures == set()
 
