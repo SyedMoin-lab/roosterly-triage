@@ -129,3 +129,28 @@ def test_german_replies_must_not_mix_sie_and_du() -> None:
         ticket_text="Kann ich die App auf Deutsch nutzen?",
     )
     assert "G9" in failures
+
+
+def test_a_dutch_reply_with_an_english_sentence_copied_from_the_faq_fails() -> None:
+    draft = (
+        "Hallo,\n\nOpen de dienst in de app en kies Ruil aanbieden. "
+        "Colleagues with the same role can accept the swap. "
+        "Je manager keurt de ruil daarna goed.\n\nGroet,\nRoosterly"
+    )
+    assert "G9" in failed_codes(draft, cited_ids=("F03",), evidence=())
+
+
+def test_a_german_reply_may_quote_the_dutch_menu_labels() -> None:
+    draft = (
+        "Hallo,\n\nSie können die Genehmigung unter Instellingen → Rooster (Settings → Rota) "
+        "jederzeit ausschalten. Danach brauchen Schichttausche keine Freigabe mehr.\n\n"
+        "Viele Grüße\nIhr Roosterly-Team"
+    )
+    codes = failed_codes(
+        draft,
+        cited_ids=("F03",),
+        evidence=(),
+        language=Language.GERMAN,
+        ticket_text="Kann ich die Freigabe für Schichttausche abschalten?",
+    )
+    assert "G9" not in codes

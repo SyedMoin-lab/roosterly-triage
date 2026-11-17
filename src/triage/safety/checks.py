@@ -76,6 +76,11 @@ class CheckFailure:
     detail: str
 
 
+# Sentences end at . ! ? followed by space, or at a line break; URLs keep their dots.
+_SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+|\n+")
+MIN_SENTENCE_WORDS = 5
+
+
 def check_draft(
     draft: str,
     *,
@@ -208,6 +213,12 @@ def _check_language(
     detected = detect_language(draft, mask=faq.labels)
     if detected is not None and detected is not language:
         failures.append(CheckFailure("G9", f"reply is in {detected}, the ticket in {language}"))
+    else:
+        foreign = _foreign_sentence(draft, language, faq)
+        if foreign is not None:
+            failures.append(
+                CheckFailure("G9", f"a sentence is not in {language}: {foreign[:60]!r}")
+            )
     if language is Language.DUTCH and _mixes(draft.casefold(), _DUTCH_FORMAL, _DUTCH_INFORMAL):
         failures.append(CheckFailure("G9", "mixes formal 'u' and informal 'je'"))
     if language is Language.GERMAN and _mixes(draft, _GERMAN_FORMAL, _GERMAN_INFORMAL):
@@ -221,6 +232,17 @@ def _check_language(
         ):
             failures.append(CheckFailure("G9", f"greets '{name}', who is not in the ticket"))
     return failures
+
+
+def _foreign_sentence(draft: str, language: Language, faq: Faq) -> str | None:
+    """A whole reply can read as Dutch while one copied sentence stays English."""
+    for sentence in _SENTENCE_BREAK.split(draft):
+        if len(sentence.split()) < MIN_SENTENCE_WORDS:
+            continue
+        detected = detect_language(sentence, mask=faq.labels)
+        if detected is not None and detected is not language:
+            return sentence.strip()
+    return None
 
 
 def _mixes(text: str, formal: re.Pattern[str], informal: re.Pattern[str]) -> bool:
