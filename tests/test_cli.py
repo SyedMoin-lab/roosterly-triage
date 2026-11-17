@@ -68,3 +68,19 @@ def test_the_status_line_is_readable() -> None:
         mode="practice", candidate="someone", open_tickets=30, handled_tickets=0
     )
     assert format_status(status) == "mode=practice candidate=someone open=30 handled=0"
+
+
+def test_run_and_eval_show_progress_unless_asked_to_be_quiet() -> None:
+    parser = build_parser()
+    assert parser.parse_args(["run"]).quiet is False
+    assert parser.parse_args(["run", "--quiet"]).quiet is True
+    assert parser.parse_args(["eval", "--quiet"]).quiet is True
+    assert not hasattr(parser.parse_args(["status"]), "quiet")
+
+
+def test_eval_can_be_limited_to_the_first_examples() -> None:
+    parser = build_parser()
+    assert parser.parse_args(["eval"]).limit is None
+    assert parser.parse_args(["eval", "--limit", "2"]).limit == 2
+    with pytest.raises(SystemExit):
+        parser.parse_args(["eval", "--limit", "0"])

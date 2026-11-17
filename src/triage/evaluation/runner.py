@@ -1,6 +1,8 @@
 import asyncio
 import json
-from collections.abc import Sequence
+import logging
+import time
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from triage.deciders import Decider, ProviderOutageError
@@ -8,7 +10,10 @@ from triage.domain import Action
 from triage.evaluation.judge import Judge
 from triage.evaluation.scoring import FIELDS, Attempt, Report, majority_correct
 from triage.evaluation.stats import mcnemar_exact
-from triage.helpdesk.models import LabelledExample
+from triage.helpdesk.models import Label, LabelledExample
+from triage.progress import ticket_scope
+
+log = logging.getLogger(__name__)
 
 
 async def evaluate(
@@ -20,35 +25,84 @@ async def evaluate(
     concurrency: int = 2,
 ) -> list[Attempt]:
     semaphore = asyncio.Semaphore(concurrency)
+    log.info(
+        "%d examples, %d %s each, %d at a time; nothing is posted",
+        len(examples),
+        repeats,
+        "run" if repeats == 1 else "runs",
+        concurrency,
+    )
 
     async def attempt(example: LabelledExample) -> Attempt:
         async with semaphore:
-            try:
-                verdict = await decider.decide(example)
-            except ProviderOutageError as error:
-                return Attempt(example.id, example.label, None, 0.0, 0, error=str(error))
-            decision, trace = verdict.decision, verdict.trace
-            judged = None
-            if judge is not None and decision.action is Action.REPLY:
-                judged = await judge.good_reply(example, decision)
-            calls = [call for call in _sequence(trace.get("calls")) if isinstance(call, dict)]
-            return Attempt(
-                example.id,
-                example.label,
-                decision,
-                cost_usd=_number(trace.get("cost_usd")),
-                tokens=int(_number(trace.get("tokens"))),
-                codes=tuple(str(code) for code in _sequence(trace.get("codes"))),
-                judged_good_reply=judged,
-                models=tuple(
-                    sorted({f"{call['role']}={call['model']}" for call in calls if _ok(call)})
-                ),
-                failed_calls=sum(not _ok(call) for call in calls),
-            )
+            with ticket_scope(example.id):
+                log.info("started")
+                started = time.perf_counter()
+                result = await _attempt(decider, example, judge)
+                log.info("%s (%.0f s)", _describe_attempt(result), time.perf_counter() - started)
+                return result
 
     return list(
         await asyncio.gather(*(attempt(example) for _ in range(repeats) for example in examples))
     )
+
+
+async def _attempt(decider: Decider, example: LabelledExample, judge: Judge | None) -> Attempt:
+    try:
+        verdict = await decider.decide(example)
+    except ProviderOutageError as error:
+        return Attempt(example.id, example.label, None, 0.0, 0, error=str(error))
+    decision, trace = verdict.decision, verdict.trace
+    judged = None
+    if judge is not None and decision.action is Action.REPLY:
+        judged = await judge.good_reply(example, decision)
+        log.info("judge: %s", "a good reply" if judged else "not a good reply")
+    calls = [call for call in _sequence(trace.get("calls")) if isinstance(call, dict)]
+    return Attempt(
+        example.id,
+        example.label,
+        decision,
+        cost_usd=_number(trace.get("cost_usd")),
+        tokens=int(_number(trace.get("tokens"))),
+        codes=tuple(str(code) for code in _sequence(trace.get("codes"))),
+        judged_good_reply=judged,
+        models=tuple(sorted({f"{call['role']}={call['model']}" for call in calls if _ok(call)})),
+        failed_calls=sum(not _ok(call) for call in calls),
+    )
+
+
+def _describe_attempt(attempt: Attempt) -> str:
+    decision = attempt.decision
+    if decision is None:
+        return f"no decision: {attempt.error}"
+    wrong = [name for name in FIELDS if not attempt.matches(name)]
+    verdict = "all four right" if not wrong else f"wrong {', '.join(wrong)}"
+    return (
+        f"done: {decision.action}, {decision.category}, {decision.priority}; "
+        f"expected {_short_label(attempt.label)}: {verdict}"
+    )
+
+
+def _short_label(label: Label) -> str:
+    return f"{label.action}, {label.category}, {label.priority}"
+
+
+def describe_summary(values: Mapping[str, object]) -> str:
+    rows = [
+        ("unsafe decisions", values["unsafe"]),
+        ("right action", values["action"]),
+        ("right category", values["category"]),
+        ("right priority", values["priority"]),
+        ("right language", values["language"]),
+        ("all four right", values["all_fields_correct"]),
+        ("handed to a person when a reply was possible", values["needless_handoffs"]),
+        ("replies the judge passed", values["good_replies"] or "none judged"),
+        ("runs that failed (provider outage)", values["errors"]),
+        ("model calls retried or passed to a backup", values["failed_model_calls"]),
+        ("list-price cost per 100 tickets", f"${values['cost_per_100_tickets_usd']}"),
+    ]
+    width = max(len(name) for name, _ in rows)
+    return "\n".join(f"  {name:<{width}}  {value}" for name, value in rows)
 
 
 def write_results(path: Path, report: Report, *, title: str, notes: dict[str, object]) -> None:

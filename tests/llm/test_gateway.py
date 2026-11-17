@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from tests.fakes.clock import FakeClock
@@ -82,3 +84,67 @@ async def test_the_rate_window_counts_requests_too() -> None:
     started = clock.now
     await window.acquire(10)
     assert clock.now - started >= 60.0
+
+
+def test_the_rate_window_predicts_no_wait_while_there_is_room() -> None:
+    clock = FakeClock()
+    window = RateWindow(
+        tokens_per_minute=1000, requests_per_minute=10, clock=clock, sleep=clock.sleep
+    )
+    assert window.seconds_until_free(1000) == 0.0
+
+
+async def test_the_rate_window_predicts_the_wait_until_enough_tokens_expire() -> None:
+    clock = FakeClock()
+    window = RateWindow(
+        tokens_per_minute=1000, requests_per_minute=10, clock=clock, sleep=clock.sleep
+    )
+    await window.acquire(400)
+    clock.now += 10
+    await window.acquire(400)
+    clock.now += 5
+    assert window.seconds_until_free(200) == 0.0
+    assert window.seconds_until_free(500) == 45.0
+    assert window.seconds_until_free(1000) == 55.0
+
+
+async def test_the_predicted_wait_for_a_request_slot_is_the_wait_that_follows() -> None:
+    clock = FakeClock()
+    window = RateWindow(
+        tokens_per_minute=100_000, requests_per_minute=2, clock=clock, sleep=clock.sleep
+    )
+    await window.acquire(10)
+    clock.now += 20
+    await window.acquire(10)
+    predicted = window.seconds_until_free(10)
+    started = clock.now
+    await window.acquire(10)
+    assert predicted == 40.0
+    assert clock.now - started == pytest.approx(predicted)
+
+
+async def test_a_wait_for_a_rate_limit_is_reported(caplog: pytest.LogCaptureFixture) -> None:
+    models = ScriptedModels()
+    models.respond(TriageProposal, lambda spec: proposal())
+    gateway = models.gateway()
+    calls: list[CallRecord] = []
+    with caplog.at_level(logging.INFO, logger="triage"):
+        for _ in range(8):
+            await gateway.structured("triage", TriageProposal, MESSAGES, (GPT_OSS,), calls)
+    waits = [message for message in caplog.messages if message.startswith("waiting about")]
+    assert waits == ["waiting about 60 s for gpt-oss-120b: it allows 7,200 tokens a minute"]
+
+
+async def test_a_model_without_a_usable_answer_is_reported(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    models = ScriptedModels()
+    models.respond(TriageProposal, lambda spec: proposal())
+    models.down = {GPT_OSS.model}
+    calls: list[CallRecord] = []
+    with caplog.at_level(logging.INFO, logger="triage"):
+        answer = await models.gateway().structured(
+            "triage", TriageProposal, MESSAGES, (GPT_OSS, QWEN), calls
+        )
+    assert answer.spec is QWEN
+    assert caplog.messages.count("gpt-oss-120b gave no usable triage answer (no response)") == 2

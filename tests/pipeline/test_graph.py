@@ -1,3 +1,4 @@
+import io
 import json
 from collections import Counter
 from itertools import count
@@ -22,6 +23,7 @@ from triage.domain import Action, Category, Language, Priority
 from triage.llm.roster import FLASH_LITE, GPT_OSS, QWEN
 from triage.pipeline.graph import Pipeline, PipelineDecider
 from triage.pipeline.schemas import DraftReply, SafetyAudit, TriageProposal, Verification
+from triage.progress import show_progress, ticket_scope
 
 EVERY_TRIAGE_MODEL = {GPT_OSS.model, QWEN.model, FLASH_LITE.model}
 
@@ -240,3 +242,50 @@ async def test_the_trace_counts_cost_and_holds_no_ticket_text(
     assert isinstance(cost, float)
     assert cost > 0
     assert verdict.trace["prompts"]
+
+
+async def test_every_step_is_shown_with_the_ticket_id_and_without_the_ticket_text(
+    pipeline: Pipeline,
+) -> None:
+    stream = io.StringIO()
+    with show_progress(stream), ticket_scope("T042"):
+        await pipeline.run(ticket(QUESTION, ticket_id="T042"))
+    lines = stream.getvalue().splitlines()
+    steps = [line.split("T042", 1)[1].strip() for line in lines]
+    assert all(" T042 " in line for line in lines)
+    assert steps[0].startswith("read the ticket: Dutch, ")
+    assert steps[1] == "injection check: Prompt Guard score 0.00, no injection patterns"
+    assert steps[2:] == [
+        "triage (gpt-oss-120b): Dutch, question, P4, proposes reply, cites F02",
+        "second opinions: gemini-3.5-flash-lite says reply, qwen3.8-27b says reply; "
+        "rules audit (gpt-oss-safeguard-20b): clean",
+        "decision rules: reply",
+        "draft 1 (qwen3.8-27b): passes the code checks",
+        "back-translation check (gemini-3.5-flash-lite): passed, every claim is in the help centre",
+    ]
+    assert QUESTION not in stream.getvalue()
+
+
+async def test_a_rule_ticket_shows_the_client_rule_that_sends_it_to_a_person(
+    pipeline: Pipeline,
+) -> None:
+    stream = io.StringIO()
+    with show_progress(stream):
+        await pipeline.run(ticket(REFUND))
+    assert (
+        "decision rules: handoff, because client rule R1 (refund or disputed charge)"
+        in stream.getvalue()
+    )
+
+
+async def test_a_draft_that_keeps_failing_shows_the_check_and_the_handoff(
+    pipeline: Pipeline, models: ScriptedModels
+) -> None:
+    models.respond(DraftReply, lambda spec: BAD_DRAFT)
+    stream = io.StringIO()
+    with show_progress(stream):
+        await pipeline.run(ticket(QUESTION))
+    output = stream.getvalue()
+    assert "draft 1 (qwen3.8-27b): fails G" in output
+    assert "draft 2 (qwen3.8-27b): fails G" in output
+    assert "after the checks: handoff, because the draft failed the code checks" in output

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from collections import Counter
 from collections.abc import Callable, Mapping
@@ -21,9 +22,25 @@ from triage.helpdesk.errors import (
 )
 from triage.journal.states import FINISHED, Outcome, TicketState
 from triage.journal.store import Journal
+from triage.progress import ticket_scope
 from triage.runlog import RunLog
 
 type CrashHook = Callable[[str, str], None]
+
+_SHOWN_OUTCOMES = {
+    Outcome.POSTED: "posted",
+    Outcome.PREVIEWED: "decided, not posted (dry run)",
+    Outcome.DEFERRED: "left open for the next run",
+    Outcome.DECIDE_FAILED: "left open, the decision failed",
+    Outcome.ALREADY_HANDLED: "already answered (409), not sent again",
+    Outcome.CONFIRMED_BY_READ: "posted, confirmed by reading it back",
+    Outcome.HANDLED_ELSEWHERE: "handled outside this run",
+    Outcome.UNSETTLED: "not settled yet, the next run checks it",
+    Outcome.REJECTED: "rejected by the helpdesk",
+    Outcome.NOT_IN_SET: "not in this ticket set",
+}
+
+log = logging.getLogger(__name__)
 
 
 class ExitCode(IntEnum):
@@ -124,6 +141,12 @@ class Runner:
             concurrency=self._options.concurrency,
         )
         work = await self._plan(epoch, open_tickets, summary)
+        log.info(
+            "%d open tickets to handle, %d at a time%s",
+            len(work),
+            self._options.concurrency,
+            "; dry run, nothing is posted" if dry_run else "",
+        )
         semaphore = asyncio.Semaphore(self._options.concurrency)
         try:
             async with asyncio.TaskGroup() as group:
@@ -179,10 +202,16 @@ class Runner:
         summary: RunSummary,
     ) -> None:
         async with semaphore:
-            started = time.perf_counter()
-            result = await self._decide_and_deliver(epoch, ticket, state, summary)
-            if result is not None:
-                self._record(summary, epoch, ticket.id, result, time.perf_counter() - started)
+            with ticket_scope(ticket.id):
+                log.info(
+                    "started: %s ticket, %s plan",
+                    ticket.channel or "unknown",
+                    ticket.customer_plan or "unknown",
+                )
+                started = time.perf_counter()
+                result = await self._decide_and_deliver(epoch, ticket, state, summary)
+                if result is not None:
+                    self._record(summary, epoch, ticket.id, result, time.perf_counter() - started)
 
     async def _decide_and_deliver(
         self, epoch: int, ticket: Ticket, state: TicketState, summary: RunSummary
@@ -299,6 +328,17 @@ class Runner:
             detail=result.detail,
             duration_ms=round(seconds * 1000),
         )
+        log.info("%s", _describe_result(result, seconds), extra={"ticket": ticket_id})
+
+
+def _describe_result(result: _Result, seconds: float) -> str:
+    text = _SHOWN_OUTCOMES.get(result.outcome, str(result.outcome))
+    decision = result.decision
+    if decision is not None:
+        text += f": {decision.action}, {decision.category}, {decision.priority}"
+    elif result.detail:
+        text += f": {result.detail.split(':', 1)[0]}"
+    return f"{text} ({seconds:.0f} s)" if seconds else text
 
 
 def _first_leaf(group: BaseExceptionGroup[BaseException]) -> BaseException:

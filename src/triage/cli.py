@@ -1,9 +1,9 @@
 import argparse
 import asyncio
-import json
+import logging
 import sys
 import uuid
-from contextlib import AsyncExitStack
+from contextlib import AbstractContextManager, AsyncExitStack, nullcontext
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -17,7 +17,13 @@ from triage import __version__
 from triage.config import DatabaseSettings, HelpdeskSettings, ModelSettings
 from triage.deciders import Decider, DrillDecider
 from triage.evaluation.judge import Judge
-from triage.evaluation.runner import compare_with, evaluate, summary, write_results
+from triage.evaluation.runner import (
+    compare_with,
+    describe_summary,
+    evaluate,
+    summary,
+    write_results,
+)
 from triage.evaluation.scoring import score
 from triage.helpdesk.client import HelpdeskClient
 from triage.helpdesk.errors import AuthenticationError, HelpdeskError
@@ -30,11 +36,15 @@ from triage.llm.gateway import ModelGateway
 from triage.llm.roster import DRAFTING_MODELS, PRICES_AS_OF, TRIAGE_MODELS
 from triage.pipeline.graph import Pipeline, PipelineDecider
 from triage.pipeline.prompts import PROMPT_VERSIONS
+from triage.progress import show_progress
 from triage.retrieval import FaqIndex, GeminiEmbedder
 from triage.runlog import RunLog
 from triage.runner import ExitCode, FinalRunLockedError, Runner, RunOptions
 
 DECIDER_NAMES = ("pipeline", "drill")
+QUIET_HELP = "hide the live progress lines"
+
+log = logging.getLogger(__name__)
 
 
 class ConfigurationError(Exception):
@@ -47,8 +57,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command is None:
         parser.print_help()
         return ExitCode.OK
+    progress: AbstractContextManager[None] = (
+        nullcontext() if getattr(args, "quiet", True) else show_progress()
+    )
     try:
-        return int(asyncio.run(args.handler(args)))
+        with progress:
+            return int(asyncio.run(args.handler(args)))
     except ConfigurationError as error:
         print(error, file=sys.stderr)
         return ExitCode.USAGE
@@ -92,13 +106,16 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--limit", type=_positive_int, help="handle at most N tickets")
     run.add_argument("--concurrency", type=_positive_int, default=4, help="tickets at once")
     run.add_argument("--log-dir", type=Path, default=Path("logs"))
+    run.add_argument("--quiet", action="store_true", help=QUIET_HELP)
     run.set_defaults(handler=run_command)
 
     evaluation = commands.add_parser("eval", help="score the agent on the labelled examples")
     evaluation.add_argument("--repeats", type=_positive_int, default=3)
+    evaluation.add_argument("--limit", type=_positive_int, help="use only the first N examples")
     evaluation.add_argument("--name", default="baseline", help="file name under eval/results")
     evaluation.add_argument("--compare-with", type=Path, help="an earlier results JSON file")
     evaluation.add_argument("--no-judge", action="store_true", help="skip the reply judge")
+    evaluation.add_argument("--quiet", action="store_true", help=QUIET_HELP)
     evaluation.set_defaults(handler=eval_command)
 
     migrate = commands.add_parser("migrate", help="apply the database migrations")
@@ -153,18 +170,19 @@ async def run_command(args: argparse.Namespace) -> int:
             HelpdeskClient.from_settings(helpdesk_settings) as helpdesk,
         ):
             decider = await build_decider(model_settings, journal)
-            with RunLog(args.log_dir, run_id) as log:
+            with RunLog(args.log_dir, run_id) as run_log:
                 runner = Runner(
                     helpdesk=helpdesk,
                     journal=journal,
                     decider=decider,
-                    log=log,
+                    log=run_log,
                     run_id=run_id,
                     options=options,
                 )
                 summary = await runner.run()
+                log.info("run finished")
                 print(summary.describe())
-                print(f"log: {log.path}")
+                print(f"log: {run_log.path}")
                 return summary.exit_code
     except RunnerAlreadyActiveError as error:
         print(error, file=sys.stderr)
@@ -200,7 +218,7 @@ async def eval_command(args: argparse.Namespace) -> int:
     gateway = ModelGateway(model_settings)
     database_url = _optional_database_url()
     async with HelpdeskClient.from_settings(helpdesk_settings) as helpdesk:
-        examples = await helpdesk.examples()
+        examples = (await helpdesk.examples())[: args.limit]
     async with AsyncExitStack() as stack:
         retriever = None
         if database_url is not None:
@@ -227,7 +245,10 @@ async def eval_command(args: argparse.Namespace) -> int:
         notes[f"compared with {args.compare_with.stem}"] = comparison
     path = Path("eval/results") / args.name
     write_results(path, report, title=f"Eval: {args.name}", notes=notes)
-    print(json.dumps(summary(report), indent=2))
+    log.info("eval finished")
+    runs = "run" if args.repeats == 1 else "runs"
+    print(f"\nResult on {len(examples)} examples, {args.repeats} {runs} each:")
+    print(describe_summary(summary(report)))
     if comparison is not None:
         print(comparison)
     print(f"results: {path.with_suffix('.md')}")

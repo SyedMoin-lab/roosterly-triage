@@ -1,6 +1,8 @@
 import asyncio
+import logging
 import operator
 import secrets
+from collections.abc import Sequence
 from dataclasses import asdict
 from typing import Annotated, Any, Protocol, TypedDict, cast
 
@@ -40,6 +42,22 @@ from triage.safety.redaction import redact, scrub
 MAX_REASON_CHARS = 480
 DRAFT_ATTEMPTS = 2
 _RETRIEVAL_ERRORS = (openai.APIError, httpx.HTTPError, asyncpg.PostgresError, OSError)
+_PLAIN_CODES = {
+    "AUDIT": "the safety audit matched a client rule",
+    "AUTO": "it is an automatic reply",
+    "CHECKS": "the draft failed the code checks",
+    "DISAGREE": "the second opinions disagree",
+    "EMPTY": "the ticket is empty",
+    "INJECTION": "the ticket contains instructions aimed at the agent",
+    "MODEL": "the triage model wants a person to handle it",
+    "P1": "it is urgent (P1)",
+    "SPAM": "it is spam",
+    "UNCHECKED": "the reply could not be checked",
+    "UNCOVERED": "the help centre does not answer every question",
+    "VERIFY": "the back-translation found claims the help centre does not support",
+}
+
+log = logging.getLogger(__name__)
 
 
 class Retriever(Protocol):
@@ -94,7 +112,9 @@ class Pipeline:
         return cast(State, await self.graph.ainvoke({"ticket": ticket, "calls": []}))
 
     async def _prepare(self, state: State) -> dict[str, Any]:
-        return {"prepared": prepare(state["ticket"], self._faq), "nonce": secrets.token_hex(4)}
+        prepared = prepare(state["ticket"], self._faq)
+        log.info("read the ticket: %s", _describe_ticket(prepared))
+        return {"prepared": prepared, "nonce": secrets.token_hex(4)}
 
     def _after_prepare(self, state: State) -> str:
         prepared = state["prepared"]
@@ -108,6 +128,9 @@ class Pipeline:
             self._gateway.injection_probability(prepared.text, calls),
             self._retrieve(prepared),
         )
+        log.info("injection check: %s", _describe_screen(prepared, probability))
+        if retrieval is not None:
+            log.info("FAQ vector search: closest entries %s", ", ".join(retrieval) or "none")
         return {"injection_probability": probability, "retrieval": retrieval, "calls": calls}
 
     async def _retrieve(self, prepared: Prepared) -> list[str] | None:
@@ -129,9 +152,20 @@ class Pipeline:
             )
         except AllModelsFailedError:
             if prepared.hits:
+                log.info("triage: no model answered, so the client rules decide")
                 return {"triage": None, "calls": calls}
             raise
-        return {"triage": answer.value, "triage_family": answer.spec.family, "calls": calls}
+        triage = answer.value
+        log.info(
+            "triage (%s): %s, %s, %s, proposes %s%s",
+            answer.spec.short_name,
+            triage.language.name.title(),
+            triage.category,
+            triage.priority,
+            triage.action,
+            _citing(triage.faq_ids()),
+        )
+        return {"triage": triage, "triage_family": answer.spec.family, "calls": calls}
 
     def _after_triage(self, state: State) -> str:
         triage = state.get("triage")
@@ -172,10 +206,21 @@ class Pipeline:
         votes = [
             answer.value for answer in answers[:-1] if isinstance(answer.value, TriageProposal)
         ]
-        audit = answers[-1].value
+        audit = answers[-1].value if isinstance(answers[-1].value, SafetyAudit) else None
+        opinions = ", ".join(
+            f"{answer.spec.short_name} says {answer.value.action}"
+            for answer in answers[:-1]
+            if isinstance(answer.value, TriageProposal)
+        )
+        log.info(
+            "second opinions: %s; rules audit (%s): %s",
+            opinions or "none",
+            answers[-1].spec.short_name,
+            _describe_audit(audit),
+        )
         return {
             "votes": votes,
-            "audit": audit if isinstance(audit, SafetyAudit) else None,
+            "audit": audit,
             "calls": [call for group in calls for call in group],
         }
 
@@ -188,6 +233,7 @@ class Pipeline:
             state.get("injection_probability"),
             self._faq,
         )
+        log.info("decision rules: %s", _describe_route(route, state["prepared"]))
         return {"route": route}
 
     def _after_policy(self, state: State) -> str:
@@ -199,13 +245,16 @@ class Pipeline:
         problems: list[str] = []
         draft: DraftReply | None = None
         family = ""
-        for _ in range(DRAFT_ATTEMPTS):
+        for attempt in range(1, DRAFT_ATTEMPTS + 1):
             messages = draft_messages(prepared, route, self._faq, state["nonce"], problems)
             answer = await self._gateway.structured(
                 "draft", DraftReply, messages, DRAFTING_MODELS, calls
             )
             draft, family = answer.value, answer.spec.family
             problems = self._draft_problems(draft, prepared, route)
+            log.info(
+                "draft %d (%s): %s", attempt, answer.spec.short_name, _describe_problems(problems)
+            )
             if not problems:
                 break
         return {"draft": draft, "draft_family": family, "failures": problems, "calls": calls}
@@ -240,10 +289,17 @@ class Pipeline:
         verifiers = other_families(VERIFYING_MODELS, state["draft_family"])
         messages = verify_messages(draft.reply, triage, self._faq, state["route"], state["nonce"])
         answer = await self._gateway.structured("verify", Verification, messages, verifiers, calls)
+        log.info(
+            "back-translation check (%s): %s",
+            answer.spec.short_name,
+            _describe_verification(answer.value),
+        )
         return {"verification": answer.value, "calls": calls}
 
     async def _finalize(self, state: State) -> dict[str, Any]:
         route = settle_route(state)
+        if route is not state["route"]:
+            log.info("after the checks: %s", _describe_route(route, state["prepared"]))
         return {"route": route, "decision": build_decision(state, route)}
 
 
@@ -377,3 +433,69 @@ def _handoff_reason(prepared: Prepared, route: Route) -> str:
 def _clip(text: str) -> str:
     clean = " ".join(redact(text).text.split())
     return clean if len(clean) <= MAX_REASON_CHARS else f"{clean[: MAX_REASON_CHARS - 3]}..."
+
+
+def _describe_ticket(prepared: Prepared) -> str:
+    language = prepared.detected_language
+    parts = [
+        language.name.title() if language else "language unclear",
+        f"{len(prepared.text)} characters",
+    ]
+    if prepared.is_empty:
+        parts.append("empty")
+    if prepared.is_automatic_reply:
+        parts.append("looks like an automatic reply")
+    parts += [f"client rule {hit.rule.code} ({hit.rule.summary})" for hit in prepared.hits]
+    if prepared.redacted:
+        hidden = ", ".join(f"{n} {kind.upper()}" for kind, n in sorted(prepared.redacted.items()))
+        parts.append(f"hid {hidden}")
+    return ", ".join(parts)
+
+
+def _describe_screen(prepared: Prepared, probability: float | None) -> str:
+    score = (
+        "no Prompt Guard score (model unavailable)"
+        if probability is None
+        else f"Prompt Guard score {probability:.2f}"
+    )
+    pattern = "an injection pattern matched" if prepared.injection else "no injection patterns"
+    return f"{score}, {pattern}"
+
+
+def _citing(ids: Sequence[str]) -> str:
+    return f", cites {', '.join(ids)}" if ids else ""
+
+
+def _describe_audit(audit: SafetyAudit | None) -> str:
+    if audit is None:
+        return "no answer"
+    return f"matches client rule {audit.rule}" if audit.violation else "clean"
+
+
+def _describe_route(route: Route, prepared: Prepared) -> str:
+    if not route.codes:
+        return str(route.action)
+    rules = {hit.rule.code: hit.rule.summary for hit in prepared.hits}
+    why = "; ".join(
+        f"client rule {code} ({rules[code]})" if code in rules else _PLAIN_CODES.get(code, code)
+        for code in route.codes
+    )
+    return f"{route.action}, because {why}"
+
+
+def _describe_problems(problems: Sequence[str]) -> str:
+    if not problems:
+        return "passes the code checks"
+    return "fails " + ", ".join(sorted({problem.split(":", 1)[0] for problem in problems}))
+
+
+def _describe_verification(verification: Verification) -> str:
+    if verification.passed:
+        return "passed, every claim is in the help centre"
+    unsupported = sum(not claim.supported for claim in verification.claims)
+    if unsupported:
+        total = len(verification.claims)
+        return f"failed, {unsupported} of {total} claims are not in the help centre"
+    if not verification.answers_every_question:
+        return "failed, not every question is answered"
+    return "failed"

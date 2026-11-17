@@ -23,6 +23,17 @@ class RateWindow:
         self._spent: deque[tuple[float, int]] = deque()
         self._lock = asyncio.Lock()
 
+    def seconds_until_free(self, tokens: int) -> float:
+        tokens = min(tokens, self._tokens_per_minute)
+        now = self._clock()
+        live = [(at, cost) for at, cost in self._spent if now - at < WINDOW_SECONDS]
+        used, count, wait = sum(cost for _, cost in live), len(live), 0.0
+        for at, cost in live:
+            if count < self._requests_per_minute and used + tokens <= self._tokens_per_minute:
+                break
+            used, count, wait = used - cost, count - 1, at + WINDOW_SECONDS - now
+        return max(wait, 0.0)
+
     async def acquire(self, tokens: int) -> None:
         tokens = min(tokens, self._tokens_per_minute)
         async with self._lock:

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -24,7 +25,18 @@ ATTEMPTS_PER_MODEL = 2
 RETRY_PAUSE_SECONDS = 2.0
 GUARD_SEGMENT_CHARS = 1500
 GUARD_MAX_SEGMENTS = 4
+WAIT_WORTH_REPORTING_SECONDS = 1.0
 _PROVIDER_ERRORS = (openai.APIError, httpx.HTTPError)
+_OUTCOMES = {
+    "unparseable": "broken JSON",
+    "rate_limited": "rate limited",
+    "exhausted": "daily limit reached",
+    "rejected": "key or model rejected",
+    "bad_request": "bad request",
+    "unavailable": "no response",
+}
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +96,13 @@ class ModelGateway:
                 answer = await self._attempt(role, schema, messages, spec, calls)
                 if answer is not None:
                     return answer
+                outcome = calls[-1].outcome
+                log.info(
+                    "%s gave no usable %s answer (%s)",
+                    spec.short_name,
+                    role,
+                    _OUTCOMES.get(outcome, outcome),
+                )
         raise AllModelsFailedError(f"every model for {role} failed")
 
     async def _attempt[SchemaT: BaseModel](
@@ -94,7 +113,7 @@ class ModelGateway:
         spec: ModelSpec,
         calls: list[CallRecord],
     ) -> Answer[SchemaT] | None:
-        await self._window(spec).acquire(_estimated_tokens(messages) + spec.max_tokens)
+        await self._reserve(spec, _estimated_tokens(messages) + spec.max_tokens)
         started = time.perf_counter()
         try:
             result = await self._factory(spec, schema).ainvoke(list(messages))
@@ -118,7 +137,7 @@ class ModelGateway:
         ][:GUARD_MAX_SEGMENTS]
         scores: list[float] = []
         for segment in segments:
-            await self._window(PROMPT_GUARD).acquire(_estimated_tokens([("user", segment)]) + 16)
+            await self._reserve(PROMPT_GUARD, _estimated_tokens([("user", segment)]) + 16)
             started = time.perf_counter()
             try:
                 message = await self._factory(PROMPT_GUARD, None).ainvoke([("user", segment)])
@@ -136,6 +155,18 @@ class ModelGateway:
         if outcome in {"exhausted", "rejected"}:
             self._unavailable.add(spec.model)
         return CallRecord(role, spec.model, outcome, 0, 0, _elapsed_ms(started), 0.0)
+
+    async def _reserve(self, spec: ModelSpec, tokens: int) -> None:
+        window = self._window(spec)
+        wait = window.seconds_until_free(tokens)
+        if wait >= WAIT_WORTH_REPORTING_SECONDS:
+            log.info(
+                "waiting about %.0f s for %s: it allows %s tokens a minute",
+                wait,
+                spec.short_name,
+                f"{spec.tokens_per_minute:,}",
+            )
+        await window.acquire(tokens)
 
     def _window(self, spec: ModelSpec) -> RateWindow:
         if spec.model not in self._windows:

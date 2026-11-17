@@ -1,3 +1,4 @@
+import io
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -8,10 +9,17 @@ from tests.fakes.models import ScriptedModels
 from triage.deciders import ProviderOutageError, Verdict
 from triage.domain import Ticket
 from triage.evaluation.judge import Judge, JudgeVerdict
-from triage.evaluation.runner import compare_with, evaluate, summary, write_results
+from triage.evaluation.runner import (
+    compare_with,
+    describe_summary,
+    evaluate,
+    summary,
+    write_results,
+)
 from triage.evaluation.scoring import score
 from triage.helpdesk.models import LabelledExample
 from triage.knowledge.faq import load_faq
+from triage.progress import show_progress
 
 TRACE: dict[str, object] = {
     "cost_usd": 0.001,
@@ -112,3 +120,29 @@ async def test_results_are_written_and_compared_with_an_earlier_run(tmp_path: Pa
     assert markdown.startswith("# Eval: before")
     assert "| E02 |" in markdown
     assert "fixed ['E01', 'E03'], broken none" in comparison
+
+
+async def test_the_progress_shows_each_example_against_its_label() -> None:
+    stream = io.StringIO()
+    with show_progress(stream):
+        await evaluate(
+            ExampleDecider(replies=frozenset({"E01"})), examples(), repeats=1, judge=None
+        )
+    output = stream.getvalue()
+    assert "3 examples, 1 run each, 2 at a time; nothing is posted" in output
+    assert (
+        "E01    done: reply, question, P4; expected reply, question, P4: all four right" in output
+    )
+    assert (
+        "E03    done: handoff, billing, P2; expected reply, question, P4: "
+        "wrong action, category, priority"
+    ) in output
+
+
+async def test_the_summary_reads_as_plain_text() -> None:
+    decider = ExampleDecider(replies=frozenset({"E01"}))
+    report = score(await evaluate(decider, examples(), repeats=1, judge=None))
+    text = describe_summary(summary(report))
+    assert text.splitlines()[0].split() == ["unsafe", "decisions", "0"]
+    assert text.splitlines()[1].split() == ["right", "action", "2/3"]
+    assert "{" not in text

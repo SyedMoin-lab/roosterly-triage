@@ -29,6 +29,10 @@ class ModelSpec:
     usd_per_million_output: float
     options: Mapping[str, Any] = field(default_factory=dict)
 
+    @property
+    def short_name(self) -> str:
+        return self.model.rsplit("/", 1)[-1]
+
     def cost_usd(self, input_tokens: int, output_tokens: int) -> float:
         return (
             input_tokens * self.usd_per_million_input + output_tokens * self.usd_per_million_output

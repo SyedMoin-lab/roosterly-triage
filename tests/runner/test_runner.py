@@ -1,3 +1,4 @@
+import io
 from collections import Counter
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from triage.domain import Ticket
 from triage.helpdesk.errors import AuthenticationError
 from triage.journal.states import Outcome
 from triage.journal.store import Journal
+from triage.progress import show_progress
 from triage.runner import ExitCode, FinalRunLockedError, RunOptions
 
 UNAUTHORIZED = {"error": "unauthorized", "message": "Invalid key."}
@@ -158,3 +160,15 @@ async def test_a_refused_key_stops_the_run_and_keeps_the_frozen_decision(harness
     await harness.run(RunOptions(concurrency=1))
     assert harness.decider.calls["T001"] == 1
     assert_every_ticket_answered_exactly_once(harness.fake)
+
+
+async def test_the_progress_shows_each_ticket_starting_and_being_posted(harness: Harness) -> None:
+    stream = io.StringIO()
+    with show_progress(stream):
+        await harness.run(RunOptions(limit=2))
+    lines = stream.getvalue().splitlines()
+    assert lines[0].endswith("2 open tickets to handle, 4 at a time")
+    for ticket_id in ("T001", "T002"):
+        mine = [line for line in lines if f" {ticket_id} " in line]
+        assert mine[0].split(ticket_id, 1)[1].strip().startswith("started: ")
+        assert mine[-1].split(ticket_id, 1)[1].strip().startswith("posted: handoff, ")

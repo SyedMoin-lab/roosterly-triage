@@ -11,11 +11,13 @@ docker compose up -d --wait db                       # Postgres 18 + pgvector
 poetry install && cp .env.example .env               # then fill in the keys
 poetry run python -m triage run --dry-run --limit 3  # decide three tickets, post nothing
 poetry run python -m triage eval                     # the 10 labelled examples, 3 runs each
-poetry run python scripts/check.py                   # ruff, mypy --strict, 331 tests, as in CI
+poetry run python scripts/check.py                   # ruff, mypy --strict, 348 tests, as in CI
 ```
 
-Final run: `triage reset --yes`, `triage run`, then `triage lock` to refuse later runs. Exit code 1 or 3:
-run again to finish. With Windows Smart App Control: `python -m venv .venv`, then `python -m poetry`.
+`run` and `eval` print each step as it happens (`--quiet` hides it); `eval --limit 2 --repeats 1` is a
+quick demo. Final run: `triage reset --yes`, `triage run`, then `triage lock` to refuse later runs. Exit
+code 1 or 3: run again to finish. With Windows Smart App Control: `python -m venv .venv`, then
+`python -m poetry`.
 The scored run on 17 November posted 30 decisions in 10 minutes; its log is
 [logs/20261116T224609Z-7ac058f5.jsonl](logs/20261116T224609Z-7ac058f5.jsonl).
 
